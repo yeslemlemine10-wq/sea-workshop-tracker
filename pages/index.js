@@ -228,7 +228,7 @@ function ManpowerWidget({ entries, onOpenEditor }) {
   return (
     <div onClick={onOpenEditor} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, padding: "14px 16px", marginBottom: 18, cursor: "pointer" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Personnel today — {fmtDate(today)}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>ManPower on — {fmtDate(today)}</span>
         <span style={{ fontSize: 11.5, color: COLORS.green, fontWeight: 600 }}>Click to update →</span>
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
