@@ -485,7 +485,6 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
   const [communicated, setCommunicated] = useState(!!project.invoiceCommunicated);
   const [error, setError] = useState("");
   const handleConfirm = () => {
-    if (!invoiceNumber.trim()) { setError("Invoice number is required to close this project."); return; }
     onConfirm(invoiceNumber.trim(), communicated);
   };
   return (
@@ -494,7 +493,7 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
         <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Close & archive "{project.name}"</h3>
         <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Enter the invoice details before archiving this project.</p>
         <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
-          <span style={labelSmall}>Invoice number *</span>
+          <span style={labelSmall}>Invoice number</span>
           <input autoFocus value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-2026-088" style={inputStyle} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
@@ -581,8 +580,10 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
   const [dnNumber, setDnNumber] = useState(p.dnNumber || "");
   const [dnDate, setDnDate] = useState(p.dnDate || "");
   const [attachments, setAttachments] = useState(p.attachments || []);
+  const [invoiceNumber, setInvoiceNumber] = useState(p.invoiceNumber || "");
+  const [invoiceCommunicated, setInvoiceCommunicated] = useState(!!p.invoiceCommunicated);
   const [blockingIssues, setBlockingIssues] = useState(p.blockingIssues || []);
-
+  
   if (editing) {
     return <ProjectModal initial={p} onClose={() => setEditing(false)} onSave={(updated) => { onSave(updated); setEditing(false); }} currentUser={currentUser} />;
   }
@@ -611,19 +612,33 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           </div>
 
           {p.column === "archive" && (
-            <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
-              <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={labelSmall}>DN number</span>
-                <input value={dnNumber} onChange={(e) => setDnNumber(e.target.value)} style={inputStyle} />
-              </label>
-              <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={labelSmall}>DN date</span>
-                <input type="date" value={dnDate} onChange={(e) => setDnDate(e.target.value)} style={inputStyle} />
-              </label>
-              <button onClick={() => onSave({ ...p, dnNumber, dnDate })} style={{ ...btnGhost, alignSelf: "flex-end" }}>Save</button>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={labelSmall}>DN number</span>
+                  <input value={dnNumber} onChange={(e) => setDnNumber(e.target.value)} style={inputStyle} />
+                </label>
+                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={labelSmall}>DN date</span>
+                  <input type="date" value={dnDate} onChange={(e) => setDnDate(e.target.value)} style={inputStyle} />
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={labelSmall}>Invoice number</span>
+                  <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-2026-088" style={inputStyle} />
+                </label>
+                <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={labelSmall}>Communicated to client?</span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" onClick={() => setInvoiceCommunicated(true)} style={{ ...btnGhost, flex: 1, background: invoiceCommunicated ? COLORS.green : COLORS.paper, color: invoiceCommunicated ? COLORS.white : COLORS.text, borderColor: invoiceCommunicated ? COLORS.green : COLORS.line }}>Yes</button>
+                    <button type="button" onClick={() => setInvoiceCommunicated(false)} style={{ ...btnGhost, flex: 1, background: !invoiceCommunicated ? COLORS.rust : COLORS.paper, color: !invoiceCommunicated ? COLORS.white : COLORS.text, borderColor: !invoiceCommunicated ? COLORS.rust : COLORS.line }}>No</button>
+                  </div>
+                </label>
+                <button onClick={() => onSave({ ...p, dnNumber, dnDate, invoiceNumber, invoiceCommunicated })} style={btnGhost}>Save</button>
+              </div>
             </div>
           )}
-
           {p.column !== "archive" && (
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {doneCount}/{(p.stages || []).length} done</span>
