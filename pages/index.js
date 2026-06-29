@@ -19,7 +19,12 @@ const ONGOING_STAGE_LIBRARY = [
 ];
 const STAGE_STATUS = ["pending", "active", "done"];
 const STAGE_STATUS_LABEL = { pending: "On Hold", active: "On Going", done: "Done" };
-
+const deriveStageStatus = (pct) => {
+  const p = Number(pct) || 0;
+  if (p <= 0) return "pending";
+  if (p >= 100) return "done";
+  return "active";
+};
 // ---- SEA Engineering brand palette: black / white / green ----
 const COLORS = {
   black: "#111315",
@@ -94,21 +99,31 @@ function Logo({ size = 38 }) {
   return <img src="/logo.png" alt="SEA Engineering logo" style={{ height: size, width: "auto", objectFit: "contain" }} />;
 }
 
-function StageBar({ stage, onCycle, editable }) {
-  const pct = stage.status === "done" ? 100 : stage.status === "active" ? (stage.pct ?? 50) : 0;
+function StageBar({ stage, onSetPct, editable }) {
+  const pct = Math.max(0, Math.min(100, Number(stage.pct) || 0));
+  const status = deriveStageStatus(pct);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
       <span style={{ fontSize: 12, width: 140, flexShrink: 0, color: COLORS.text }}>{stage.name}</span>
       <div style={{ flex: 1, height: 14, background: COLORS.paper2, borderRadius: 3, overflow: "hidden", position: "relative" }}>
-        <div style={{ height: "100%", background: STAGE_DOT[stage.status], width: pct + "%", transition: "width 0.2s" }} />
+        <div style={{ height: "100%", background: STAGE_DOT[status], width: pct + "%", transition: "width 0.2s" }} />
       </div>
-      <span style={{ fontSize: 11, color: COLORS.textMute, width: 32, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
-      <button
-        onClick={(e) => { e.stopPropagation(); if (editable) onCycle(); }}
+      <input
+        type="number" min="0" max="100" value={pct}
         disabled={!editable}
-        style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 9px", borderRadius: 10, border: "none", background: STAGE_BG[stage.status], color: stage.status === "done" ? COLORS.greenDark : stage.status === "active" ? "#7A5610" : COLORS.rust, cursor: editable ? "pointer" : "default", width: 70, flexShrink: 0 }}>
-        {STAGE_STATUS_LABEL[stage.status]}
-      </button>
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          let v = parseInt(e.target.value, 10);
+          if (isNaN(v)) v = 0;
+          v = Math.max(0, Math.min(100, v));
+          if (editable) onSetPct(v);
+        }}
+        style={{ width: 48, fontSize: 11, textAlign: "right", border: `1px solid ${COLORS.line}`, borderRadius: 4, padding: "2px 4px", flexShrink: 0 }}
+      />
+      <span style={{ fontSize: 11, color: COLORS.textMute, width: 10, flexShrink: 0 }}>%</span>
+      <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 9px", borderRadius: 10, background: STAGE_BG[status], color: status === "done" ? COLORS.greenDark : status === "active" ? "#7A5610" : COLORS.rust, width: 70, flexShrink: 0, textAlign: "center" }}>
+        {STAGE_STATUS_LABEL[status]}
+      </span>
     </div>
   );
 }
@@ -119,7 +134,7 @@ function StagePipelineCompact({ stages }) {
     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "8px 0 4px" }}>
       {stages.map((s, i) => (
         <span key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 12, padding: "3px 9px 3px 6px", fontSize: 11, fontWeight: 500, color: COLORS.text }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: STAGE_DOT[s.status], flexShrink: 0 }} />
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: STAGE_DOT[deriveStageStatus(s.pct)], flexShrink: 0 }} />
           {s.name}
         </span>
       ))}
@@ -131,13 +146,13 @@ function StagePicker({ library, selected, onChange }) {
   const [custom, setCustom] = useState("");
   const toggle = (name) => {
     const exists = selected.find((s) => s.name === name);
-    if (exists) onChange(selected.filter((s) => s.name !== name));
-    else onChange([...selected, { name, status: "pending" }]);
+  if (exists) onChange(selected.filter((s) => s.name !== name));
+    else onChange([...selected, { name, status: "pending", pct: 0 }]);
   };
   const addCustom = () => {
     const v = custom.trim();
     if (!v) return;
-    if (!selected.find((s) => s.name.toLowerCase() === v.toLowerCase())) onChange([...selected, { name: v, status: "pending" }]);
+    if (!selected.find((s) => s.name.toLowerCase() === v.toLowerCase())) onChange([...selected, { name: v, status: "pending", pct: 0 }]);
     setCustom("");
   };
   return (
@@ -517,8 +532,9 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
     </div>
   );
 }
+
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
-  const doneCount = (p.stages || []).filter((s) => s.status === "done").length;
+ const doneCount = (p.stages || []).filter((s) => deriveStageStatus(s.pct) === "done").length;
   const totalStages = (p.stages || []).length;
   const pct = totalStages ? Math.round((doneCount / totalStages) * 100) : 0;
   const hasOpenIssue = (p.blockingIssues || []).some((b) => !b.resolved);
@@ -580,7 +596,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
 const metaK = { display: "block", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5, color: COLORS.textMute };
 const metaV = { display: "block", fontSize: 13, fontWeight: 500, marginTop: 1 };
 
-function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onCycleStage, currentUser }) {
+function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onSetStagePct, currentUser }) {
   const [editing, setEditing] = useState(false);
   const [dnNumber, setDnNumber] = useState(p.dnNumber || "");
   const [dnDate, setDnDate] = useState(p.dnDate || "");
@@ -593,7 +609,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
     return <ProjectModal initial={p} onClose={() => setEditing(false)} onSave={(updated) => { onSave(updated); setEditing(false); }} currentUser={currentUser} />;
   }
 
-  const doneCount = (p.stages || []).filter((s) => s.status === "done").length;
+ const doneCount = (p.stages || []).filter((s) => deriveStageStatus(s.pct) === "done").length;
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}>
@@ -648,8 +664,8 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {doneCount}/{(p.stages || []).length} done</span>
               <div style={{ marginTop: 8 }}>
-                {(p.stages || []).map((s, i) => (
-                  <StageBar key={i} stage={s} editable={true} onCycle={() => onCycleStage(p, i)} />
+               {(p.stages || []).map((s, i) => (
+                  <StageBar key={i} stage={s} editable={true} onSetPct={(pct) => onSetStagePct(p, i, pct)} />
                 ))}
                 {(!p.stages || p.stages.length === 0) && <p style={{ fontSize: 12, color: COLORS.textMute, fontStyle: "italic" }}>No steps defined yet — edit project to add some.</p>}
               </div>
@@ -851,14 +867,10 @@ const requestAdvance = (p) => {
     });
   };
 
-  const handleCycleStage = async (p, idx) => {
-    const stages = p.stages.map((s, i) => {
-      if (i !== idx) return s;
-      const next = STAGE_STATUS[(STAGE_STATUS.indexOf(s.status) + 1) % STAGE_STATUS.length];
-      return { ...s, status: next };
-    });
+  const handleSetStagePct = async (p, idx, pct) => {
+    const stages = p.stages.map((s, i) => (i === idx ? { ...s, pct, status: deriveStageStatus(pct) } : s));
     const changedStage = p.stages[idx];
-    const updated = { ...p, stages, updatedBy: currentUser, history: addHistory(p, `updated "${changedStage?.name}" → ${STAGE_STATUS_LABEL[stages[idx].status]}`, currentUser) };
+    const updated = { ...p, stages, updatedBy: currentUser, history: addHistory(p, `updated "${changedStage?.name}" → ${pct}% (${STAGE_STATUS_LABEL[deriveStageStatus(pct)]})`, currentUser) };
     await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
     if (openProject && openProject.id === p.id) setOpenProject(updated);
     loadAll();
@@ -964,7 +976,7 @@ const requestAdvance = (p) => {
           onDelete={requestDelete}
           onRequestAdvance={requestAdvance}
           onArchiveNotAwarded={requestArchiveNotAwarded}
-          onCycleStage={handleCycleStage}
+          onSetStagePct={handleSetStagePct}
           currentUser={currentUser}
         />
       )}
