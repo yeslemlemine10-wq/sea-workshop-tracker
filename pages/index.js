@@ -536,6 +536,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
             </span>
           )}
         </div>
+      </div>
     );
   }
 
