@@ -236,6 +236,11 @@ function ManpowerWidget({ entries, onOpenEditor }) {
           <span style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: COLORS.black }}>{wsTotal}</span>
           <span style={{ fontSize: 11.5, color: COLORS.textMute, marginLeft: 6 }}>in workshop</span>
         </div>
+        {workshop.map((s) => (
+          <div key={s.id} style={{ fontSize: 11.5, color: COLORS.textMute, alignSelf: "center" }}>
+            <strong style={{ color: COLORS.text }}>{s.location}</strong>: {s.expat_count} exp · {s.local_count} loc
+          </div>
+        ))}
         <div>
           <span style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: COLORS.green }}>{siteTotal}</span>
           <span style={{ fontSize: 11.5, color: COLORS.textMute, marginLeft: 6 }}>on external sites</span>
