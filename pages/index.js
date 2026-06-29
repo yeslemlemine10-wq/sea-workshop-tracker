@@ -62,6 +62,7 @@ function fromRow(r) {
     siteType: r.site_type || "workshop", site: r.site || "", notes: r.notes || "",
     column: r.column_name, stages: r.stages || [],
     dnNumber: r.dn_number || "", dnDate: r.dn_date || "",
+    invoiceNumber: r.invoice_number || "", invoiceCommunicated: !!r.invoice_communicated,
     attachments: r.attachments || [], blockingIssues: r.blocking_issues || [],
     history: r.history || [], createdAt: r.created_at, approvedAt: r.approved_at,
     closedAt: r.closed_at, updatedAt: r.updated_at, updatedBy: r.updated_by,
@@ -73,6 +74,7 @@ function toRow(p) {
     po: p.po, name: p.name, client: p.client, supervisor: p.supervisor,
     site_type: p.siteType, site: p.site, notes: p.notes, column_name: p.column,
     stages: p.stages, dn_number: p.dnNumber, dn_date: p.dnDate,
+    invoice_number: p.invoiceNumber, invoice_communicated: p.invoiceCommunicated,
     attachments: p.attachments || [], blocking_issues: p.blockingIssues || [],
     history: p.history, approved_at: p.approvedAt, closed_at: p.closedAt,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
@@ -478,6 +480,39 @@ function AdvancePoModal({ project, onClose, onConfirm }) {
     </div>
   );
 }
+function CloseArchiveModal({ project, onClose, onConfirm }) {
+  const [invoiceNumber, setInvoiceNumber] = useState(project.invoiceNumber || "");
+  const [communicated, setCommunicated] = useState(!!project.invoiceCommunicated);
+  const [error, setError] = useState("");
+  const handleConfirm = () => {
+    if (!invoiceNumber.trim()) { setError("Invoice number is required to close this project."); return; }
+    onConfirm(invoiceNumber.trim(), communicated);
+  };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 200 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, padding: "20px 22px" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Close & archive "{project.name}"</h3>
+        <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Enter the invoice details before archiving this project.</p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
+          <span style={labelSmall}>Invoice number *</span>
+          <input autoFocus value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-2026-088" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+          <span style={labelSmall}>Communicated to client?</span>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" onClick={() => setCommunicated(true)} style={{ ...btnGhost, flex: 1, background: communicated ? COLORS.green : COLORS.paper, color: communicated ? COLORS.white : COLORS.text, borderColor: communicated ? COLORS.green : COLORS.line }}>Yes</button>
+            <button type="button" onClick={() => setCommunicated(false)} style={{ ...btnGhost, flex: 1, background: !communicated ? COLORS.rust : COLORS.paper, color: !communicated ? COLORS.white : COLORS.text, borderColor: !communicated ? COLORS.rust : COLORS.line }}>No</button>
+          </div>
+        </label>
+        {error && <div style={{ color: COLORS.rust, fontSize: 12.5, background: COLORS.rustLight, border: `1px solid ${COLORS.rust}`, borderRadius: 4, padding: "8px 10px", marginBottom: 12 }}>{error}</div>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={handleConfirm} style={btnGreen}>Confirm & archive</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
   const doneCount = (p.stages || []).filter((s) => s.status === "done").length;
   const totalStages = (p.stages || []).length;
@@ -491,9 +526,16 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
           <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
           {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}
         </div>
-        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
+       <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
         <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
-      </div>
+        <div style={{ fontSize: 12, color: COLORS.textMute, marginTop: 2 }}>
+          Invoice: {p.invoiceNumber || "—"}{" "}
+          {p.invoiceNumber && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: p.invoiceCommunicated ? COLORS.greenDark : COLORS.rust }}>
+              ({p.invoiceCommunicated ? "communicated" : "not communicated"})
+            </span>
+          )}
+        </div>
     );
   }
 
@@ -681,6 +723,7 @@ export default function Home() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [showManpowerEditor, setShowManpowerEditor] = useState(false);
   const [advancingProject, setAdvancingProject] = useState(null);
+  const [closingProject, setClosingProject] = useState(null);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("sea_tracker_user") : null;
@@ -744,26 +787,24 @@ export default function Home() {
     });
   };
 
- const requestAdvance = (p) => {
+const requestAdvance = (p) => {
     const isEval = p.column === "evaluation";
     if (isEval) {
       setAdvancingProject(p);
       return;
     }
-    setConfirmAction({
-      title: "Close & archive?",
-      message: `Confirm that ${p.po} — ${p.name} is complete and should be closed to Archive.`,
-      onConfirm: async () => {
-        const now = new Date().toISOString();
-        const updated = { ...p, column: "archive", closedAt: now, updatedBy: currentUser, history: addHistory(p, "closed — moved to Archive", currentUser) };
-        await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
-        setConfirmAction(null);
-        if (openProject && openProject.id === p.id) setOpenProject(updated);
-        loadAll();
-      },
-    });
+    setClosingProject(p);
   };
 
+  const handleConfirmCloseArchive = async (invoiceNumber, communicated) => {
+    const p = closingProject;
+    const now = new Date().toISOString();
+    const updated = { ...p, invoiceNumber, invoiceCommunicated: communicated, column: "archive", closedAt: now, updatedBy: currentUser, history: addHistory(p, "closed — moved to Archive", currentUser) };
+    await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
+    setClosingProject(null);
+    if (openProject && openProject.id === p.id) setOpenProject(updated);
+    loadAll();
+  };
   const handleConfirmAdvanceToOngoing = async (po) => {
     const p = advancingProject;
     const now = new Date().toISOString();
@@ -912,6 +953,9 @@ export default function Home() {
       )}
       {advancingProject && (
         <AdvancePoModal project={advancingProject} onClose={() => setAdvancingProject(null)} onConfirm={handleConfirmAdvanceToOngoing} />
+      )}
+      {closingProject && (
+        <CloseArchiveModal project={closingProject} onClose={() => setClosingProject(null)} onConfirm={handleConfirmCloseArchive} />
       )}
       {confirmAction && (
         <ConfirmDialog title={confirmAction.title} message={confirmAction.message} onConfirm={confirmAction.onConfirm} onCancel={() => setConfirmAction(null)} />
