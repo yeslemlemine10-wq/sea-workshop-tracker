@@ -381,8 +381,9 @@ function ProjectModal({ initial, defaultColumn, onClose, onSave, currentUser }) 
   const column = initial?.column || defaultColumn || "evaluation";
   const library = column === "evaluation" ? EVAL_STAGE_LIBRARY : ONGOING_STAGE_LIBRARY;
 
-  const handleSave = () => {
-    if (!po.trim() || !name.trim()) { setError("PO number and project name are required."); return; }
+const handleSave = () => {
+    if (!name.trim()) { setError("Project name is required."); return; }
+    if (column !== "evaluation" && !po.trim()) { setError("PO number is required for this stage."); return; }
     const base = {
       ...(initial || {}),
       po: po.trim(), name: name.trim(), client: client.trim(), supervisor: supervisor.trim(),
@@ -402,7 +403,7 @@ function ProjectModal({ initial, defaultColumn, onClose, onSave, currentUser }) 
         <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
           <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={labelSmall}>PO number *</span>
+              <span style={labelSmall}>{column === "evaluation" ? "PO number (if known)" : "PO number *"}</span>
               <input value={po} onChange={(e) => setPo(e.target.value)} placeholder="e.g. PO-2026-114" style={inputStyle} />
             </label>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -452,7 +453,31 @@ function ProjectModal({ initial, defaultColumn, onClose, onSave, currentUser }) 
     </div>
   );
 }
-
+function AdvancePoModal({ project, onClose, onConfirm }) {
+  const [po, setPo] = useState(project.po || "");
+  const [error, setError] = useState("");
+  const handleConfirm = () => {
+    if (!po.trim()) { setError("PO number is required to move to Ongoing."); return; }
+    onConfirm(po.trim());
+  };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 200 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, padding: "20px 22px" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Move "{project.name}" to Ongoing</h3>
+        <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Enter the PO number before confirming this project as approved.</p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
+          <span style={labelSmall}>PO number *</span>
+          <input autoFocus value={po} onChange={(e) => setPo(e.target.value)} placeholder="e.g. PO-2026-114" style={inputStyle} />
+        </label>
+        {error && <div style={{ color: COLORS.rust, fontSize: 12.5, background: COLORS.rustLight, border: `1px solid ${COLORS.rust}`, borderRadius: 4, padding: "8px 10px", marginBottom: 12 }}>{error}</div>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={handleConfirm} style={btnGreen}>Confirm & move</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
   const doneCount = (p.stages || []).filter((s) => s.status === "done").length;
   const totalStages = (p.stages || []).length;
@@ -655,6 +680,7 @@ export default function Home() {
   const [filter, setFilter] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
   const [showManpowerEditor, setShowManpowerEditor] = useState(false);
+  const [advancingProject, setAdvancingProject] = useState(null);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("sea_tracker_user") : null;
@@ -718,24 +744,34 @@ export default function Home() {
     });
   };
 
-  const requestAdvance = (p) => {
+ const requestAdvance = (p) => {
     const isEval = p.column === "evaluation";
+    if (isEval) {
+      setAdvancingProject(p);
+      return;
+    }
     setConfirmAction({
-      title: isEval ? "Move to Ongoing?" : "Close & archive?",
-      message: isEval
-        ? `Confirm that ${p.po} — ${p.name} has been approved by the client and should move to Ongoing.`
-        : `Confirm that ${p.po} — ${p.name} is complete and should be closed to Archive.`,
+      title: "Close & archive?",
+      message: `Confirm that ${p.po} — ${p.name} is complete and should be closed to Archive.`,
       onConfirm: async () => {
         const now = new Date().toISOString();
-        let updated = { ...p, updatedBy: currentUser };
-        if (isEval) { updated.column = "ongoing"; updated.approvedAt = now; updated.stages = []; updated.history = addHistory(p, "approved — moved to Ongoing", currentUser); }
-        else { updated.column = "archive"; updated.closedAt = now; updated.history = addHistory(p, "closed — moved to Archive", currentUser); }
+        const updated = { ...p, column: "archive", closedAt: now, updatedBy: currentUser, history: addHistory(p, "closed — moved to Archive", currentUser) };
         await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
         setConfirmAction(null);
         if (openProject && openProject.id === p.id) setOpenProject(updated);
         loadAll();
       },
     });
+  };
+
+  const handleConfirmAdvanceToOngoing = async (po) => {
+    const p = advancingProject;
+    const now = new Date().toISOString();
+    const updated = { ...p, po, column: "ongoing", approvedAt: now, stages: [], updatedBy: currentUser, history: addHistory(p, "approved — moved to Ongoing", currentUser) };
+    await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
+    setAdvancingProject(null);
+    if (openProject && openProject.id === p.id) setOpenProject(updated);
+    loadAll();
   };
 
   const requestArchiveNotAwarded = (p) => {
@@ -872,6 +908,10 @@ export default function Home() {
       )}
       {showManpowerEditor && (
         <ManpowerEditor entries={manpower} onClose={() => setShowManpowerEditor(false)} onSave={saveManpower} />
+            
+      )}
+      {advancingProject && (
+        <AdvancePoModal project={advancingProject} onClose={() => setAdvancingProject(null)} onConfirm={handleConfirmAdvanceToOngoing} />
       )}
       {confirmAction && (
         <ConfirmDialog title={confirmAction.title} message={confirmAction.message} onConfirm={confirmAction.onConfirm} onCancel={() => setConfirmAction(null)} />
