@@ -99,45 +99,58 @@ function Logo({ size = 38 }) {
   return <img src="/logo.png" alt="SEA Engineering logo" style={{ height: size, width: "auto", objectFit: "contain" }} />;
 }
 
-function StageBar({ stage, onSetPct, editable }) {
-  const pct = Math.max(0, Math.min(100, Number(stage.pct) || 0));
-  const status = deriveStageStatus(pct);
+function StageBar({ stage, onSetPct, onCycle, editable, mode }) {
+  const isManual = mode === "manual";
+  const pct = isManual ? Math.max(0, Math.min(100, Number(stage.pct) || 0)) : (stage.status === "done" ? 100 : stage.status === "active" ? (stage.pct ?? 50) : 0);
+  const status = isManual ? deriveStageStatus(pct) : stage.status;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
       <span style={{ fontSize: 12, width: 140, flexShrink: 0, color: COLORS.text }}>{stage.name}</span>
       <div style={{ flex: 1, height: 14, background: COLORS.paper2, borderRadius: 3, overflow: "hidden", position: "relative" }}>
         <div style={{ height: "100%", background: STAGE_DOT[status], width: pct + "%", transition: "width 0.2s" }} />
       </div>
-      <input
-        type="number" min="0" max="100" value={pct}
-        disabled={!editable}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => {
-          let v = parseInt(e.target.value, 10);
-          if (isNaN(v)) v = 0;
-          v = Math.max(0, Math.min(100, v));
-          if (editable) onSetPct(v);
-        }}
-        style={{ width: 48, fontSize: 11, textAlign: "right", border: `1px solid ${COLORS.line}`, borderRadius: 4, padding: "2px 4px", flexShrink: 0 }}
-      />
-      <span style={{ fontSize: 11, color: COLORS.textMute, width: 10, flexShrink: 0 }}>%</span>
-      <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 9px", borderRadius: 10, background: STAGE_BG[status], color: status === "done" ? COLORS.greenDark : status === "active" ? "#7A5610" : COLORS.rust, width: 70, flexShrink: 0, textAlign: "center" }}>
+      {isManual ? (
+        <>
+          <input
+            type="number" min="0" max="100" value={pct}
+            disabled={!editable}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              let v = parseInt(e.target.value, 10);
+              if (isNaN(v)) v = 0;
+              v = Math.max(0, Math.min(100, v));
+              if (editable) onSetPct(v);
+            }}
+            style={{ width: 48, fontSize: 11, textAlign: "right", border: `1px solid ${COLORS.line}`, borderRadius: 4, padding: "2px 4px", flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 11, color: COLORS.textMute, width: 10, flexShrink: 0 }}>%</span>
+        </>
+      ) : (
+        <span style={{ fontSize: 11, color: COLORS.textMute, width: 32, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
+      )}
+      <button
+        onClick={(e) => { e.stopPropagation(); if (editable && !isManual) onCycle(); }}
+        disabled={!editable || isManual}
+        style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 9px", borderRadius: 10, border: "none", background: STAGE_BG[status], color: status === "done" ? COLORS.greenDark : status === "active" ? "#7A5610" : COLORS.rust, cursor: editable && !isManual ? "pointer" : "default", width: 70, flexShrink: 0 }}>
         {STAGE_STATUS_LABEL[status]}
-      </span>
+      </button>
     </div>
   );
 }
 
-function StagePipelineCompact({ stages }) {
+function StagePipelineCompact({ stages, column }) {
   if (!stages || stages.length === 0) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "8px 0 4px" }}>
-      {stages.map((s, i) => (
-        <span key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 12, padding: "3px 9px 3px 6px", fontSize: 11, fontWeight: 500, color: COLORS.text }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: STAGE_DOT[deriveStageStatus(s.pct)], flexShrink: 0 }} />
-          {s.name}
-        </span>
-      ))}
+      {stages.map((s, i) => {
+        const status = column === "ongoing" ? deriveStageStatus(s.pct) : s.status;
+        return (
+          <span key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 12, padding: "3px 9px 3px 6px", fontSize: 11, fontWeight: 500, color: COLORS.text }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: STAGE_DOT[status], flexShrink: 0 }} />
+            {s.name}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -534,7 +547,7 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
 }
 
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
- const doneCount = (p.stages || []).filter((s) => deriveStageStatus(s.pct) === "done").length;
+ const doneCount = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
   const totalStages = (p.stages || []).length;
   const pct = totalStages ? Math.round((doneCount / totalStages) * 100) : 0;
   const hasOpenIssue = (p.blockingIssues || []).some((b) => !b.resolved);
@@ -570,7 +583,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
       <h3 style={{ fontSize: 15, fontWeight: 500, margin: "0 0 4px", lineHeight: 1.3 }}>{p.name}</h3>
       {p.client && <div style={{ fontSize: 12, color: COLORS.textMute, marginBottom: 2 }}>{p.client}</div>}
       {p.site && <div style={{ fontSize: 12, color: COLORS.textMute, marginBottom: 8 }}>📍 {p.site}</div>}
-      <StagePipelineCompact stages={p.stages} />
+      <StagePipelineCompact stages={p.stages} column={p.column} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
         <div style={{ flex: 1, height: 5, background: COLORS.paper2, borderRadius: 3, overflow: "hidden" }}>
           <div style={{ height: "100%", background: COLORS.green, width: pct + "%" }} />
@@ -596,7 +609,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
 const metaK = { display: "block", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5, color: COLORS.textMute };
 const metaV = { display: "block", fontSize: 13, fontWeight: 500, marginTop: 1 };
 
-function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onSetStagePct, currentUser }) {
+function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onSetStagePct, onCycleStage, currentUser }) {
   const [editing, setEditing] = useState(false);
   const [dnNumber, setDnNumber] = useState(p.dnNumber || "");
   const [dnDate, setDnDate] = useState(p.dnDate || "");
@@ -609,7 +622,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
     return <ProjectModal initial={p} onClose={() => setEditing(false)} onSave={(updated) => { onSave(updated); setEditing(false); }} currentUser={currentUser} />;
   }
 
- const doneCount = (p.stages || []).filter((s) => deriveStageStatus(s.pct) === "done").length;
+ const doneCount = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}>
@@ -664,8 +677,13 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {doneCount}/{(p.stages || []).length} done</span>
               <div style={{ marginTop: 8 }}>
-               {(p.stages || []).map((s, i) => (
-                  <StageBar key={i} stage={s} editable={true} onSetPct={(pct) => onSetStagePct(p, i, pct)} />
+              {(p.stages || []).map((s, i) => (
+                  <StageBar
+                    key={i} stage={s} editable={true}
+                    mode={p.column === "ongoing" ? "manual" : "click"}
+                    onSetPct={(pct) => onSetStagePct(p, i, pct)}
+                    onCycle={() => onCycleStage(p, i)}
+                  />
                 ))}
                 {(!p.stages || p.stages.length === 0) && <p style={{ fontSize: 12, color: COLORS.textMute, fontStyle: "italic" }}>No steps defined yet — edit project to add some.</p>}
               </div>
@@ -876,6 +894,19 @@ const requestAdvance = (p) => {
     loadAll();
   };
 
+  const handleCycleStage = async (p, idx) => {
+    const stages = p.stages.map((s, i) => {
+      if (i !== idx) return s;
+      const next = STAGE_STATUS[(STAGE_STATUS.indexOf(s.status) + 1) % STAGE_STATUS.length];
+      return { ...s, status: next };
+    });
+    const changedStage = p.stages[idx];
+    const updated = { ...p, stages, updatedBy: currentUser, history: addHistory(p, `updated "${changedStage?.name}" → ${STAGE_STATUS_LABEL[stages[idx].status]}`, currentUser) };
+    await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
+    if (openProject && openProject.id === p.id) setOpenProject(updated);
+    loadAll();
+  };
+  
   const saveManpower = async (rows) => {
     const today = todayStr();
     await supabase.from("manpower").delete().eq("log_date", today);
@@ -977,6 +1008,7 @@ const requestAdvance = (p) => {
           onRequestAdvance={requestAdvance}
           onArchiveNotAwarded={requestArchiveNotAwarded}
           onSetStagePct={handleSetStagePct}
+          onCycleStage={handleCycleStage}
           currentUser={currentUser}
         />
       )}
