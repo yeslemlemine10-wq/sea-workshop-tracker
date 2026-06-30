@@ -101,7 +101,7 @@ function Logo({ size = 38 }) {
 
 function StageBar({ stage, onSetPct, onCycle, editable, mode }) {
   const isManual = mode === "manual";
-  const pct = isManual ? Math.max(0, Math.min(100, Number(stage.pct) || 0)) : (stage.status === "done" ? 100 : stage.status === "active" ? (stage.pct ?? 50) : 0);
+  const pct = isManual ? Math.max(0, Math.min(100, Number(stage.pct) || 0)) : (stage.status === "done" ? 100 : stage.status === "active" ? 50 : 0);
   const status = isManual ? deriveStageStatus(pct) : stage.status;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
