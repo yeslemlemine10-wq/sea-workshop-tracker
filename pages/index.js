@@ -748,14 +748,19 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
 
 function exportToExcel(projects) {
   const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const rows = [["Column", "PO Number", "Project Name", "Client", "Supervisor", "Type", "Site", "DN Number", "DN Date", "Progress %", "Updated By", "Updated On"]];
+  const rows = [["Column", "PO Number", "Project Name", "Client", "Supervisor", "Type", "Site", "DN Number", "DN Date", "Invoice Number", "Invoice Communicated", "Progress %", "Updated By", "Updated On"]];
   projects.forEach((p) => {
-    const done = (p.stages || []).filter((s) => s.status === "done").length;
+    const done = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
     const total = (p.stages || []).length;
     const pct = total ? Math.round((done / total) * 100) : "";
-    rows.push([p.column, p.po, p.name, p.client, p.supervisor, p.siteType, p.site, p.dnNumber, p.dnDate, pct, p.updatedBy, fmtDateTime(p.updatedAt)]);
+    rows.push([
+      p.column, p.po, p.name, p.client, p.supervisor, p.siteType, p.site,
+      p.dnNumber, p.dnDate,
+      p.invoiceNumber || "", p.invoiceNumber ? (p.invoiceCommunicated ? "Yes" : "No") : "",
+      pct, p.updatedBy, fmtDateTime(p.updatedAt),
+    ]);
   });
-  const csv = rows.map((r) => r.map(esc).join(",")).join("\r\n");
+  const csv = rows.map((r) => r.map(esc).join(";")).join("\r\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -766,7 +771,6 @@ function exportToExcel(projects) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
 export default function Home() {
   const [projects, setProjects] = useState(null);
   const [manpower, setManpower] = useState([]);
