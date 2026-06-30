@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
+import * as XLSX from "xlsx";
 
 const COLUMNS = ["evaluation", "ongoing", "archive"];
 const COLUMN_META = {
@@ -747,29 +748,36 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
 }
 
 function exportToExcel(projects) {
-  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const rows = [["Column", "PO Number", "Project Name", "Client", "Supervisor", "Type", "Site", "DN Number", "DN Date", "Invoice Number", "Invoice Communicated", "Progress %", "Updated By", "Updated On"]];
-  projects.forEach((p) => {
+  const rows = projects.map((p) => {
     const done = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
     const total = (p.stages || []).length;
     const pct = total ? Math.round((done / total) * 100) : "";
-    rows.push([
-      p.column, p.po, p.name, p.client, p.supervisor, p.siteType, p.site,
-      p.dnNumber, p.dnDate,
-      p.invoiceNumber || "", p.invoiceNumber ? (p.invoiceCommunicated ? "Yes" : "No") : "",
-      pct, p.updatedBy, fmtDateTime(p.updatedAt),
-    ]);
+    return {
+      "Column": p.column,
+      "PO Number": p.po,
+      "Project Name": p.name,
+      "Client": p.client,
+      "Supervisor": p.supervisor,
+      "Type": p.siteType,
+      "Site": p.site,
+      "DN Number": p.dnNumber,
+      "DN Date": p.dnDate,
+      "Invoice Number": p.invoiceNumber || "",
+      "Invoice Communicated": p.invoiceNumber ? (p.invoiceCommunicated ? "Yes" : "No") : "",
+      "Progress %": pct,
+      "Updated By": p.updatedBy,
+      "Updated On": fmtDateTime(p.updatedAt),
+    };
   });
-  const csv = rows.map((r) => r.map(esc).join(";")).join("\r\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `SEA_Workshop_Tracker_${todayStr()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet["!cols"] = [
+    { wch: 12 }, { wch: 16 }, { wch: 32 }, { wch: 18 }, { wch: 18 },
+    { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 16 },
+    { wch: 16 }, { wch: 11 }, { wch: 16 }, { wch: 16 },
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Projects");
+  XLSX.writeFile(workbook, `SEA_Workshop_Tracker_${todayStr()}.xlsx`);
 }
 export default function Home() {
   const [projects, setProjects] = useState(null);
