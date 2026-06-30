@@ -4,13 +4,13 @@ import * as XLSX from "xlsx";
 
 const COLUMNS = ["evaluation", "ongoing", "archive"];
 const COLUMN_META = {
-  evaluation: { title: "Evaluation", sub: "PRQ — technical & commercial offer in progress" },
+  evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
   ongoing: { title: "Ongoing", sub: "Approved — work in progress" },
   archive: { title: "Archive", sub: "Closed, delivered, or not awarded" },
 };
 
 const EVAL_STAGE_LIBRARY = [
-  "PRQ", "Site Visit", "External Technical Consultation", "Proposed Execution Plan",
+  "RFQ", "Site Visit", "External Technical Consultation", "Proposed Execution Plan",
   "Planning", "Technical Estimation", "Quoted", "Waiting Client / Negotiation", "Approval",
 ];
 const ONGOING_STAGE_LIBRARY = [
