@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import * as XLSX from "xlsx";
 
-const  = ["evaluation", "not_awarded", "ongoing", "archive"];
+const COLUMNS = ["evaluation", "not_awarded", "ongoing", "archive"];
 const COLUMN_META = {
   evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
   not_awarded: { title: "Not Awarded", sub: "Evaluated but not awarded by the client" },
@@ -638,7 +638,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", fontSize: 22, lineHeight: 1, color: COLORS.textMute, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
-          <div style={{ display: "grid", gridTemplate: "1fr 1fr", gap: "12px 20px", marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 18 }}>
             <div><span style={metaK}>Client</span><span style={metaV}>{p.client || "—"}</span></div>
             <div><span style={metaK}>Supervisor</span><span style={metaV}>{p.supervisor || "—"}</span></div>
             <div><span style={metaK}>Type</span><span style={metaV}>{p.siteType === "external" ? "External / site" : "Workshop"}</span></div>
@@ -981,7 +981,7 @@ const requestAdvance = (p) => {
         <ManpowerWidget entries={manpower} onOpenEditor={() => setShowManpowerEditor(true)} />
         <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
 
-        <div style={{ display: "grid", gridTemplate: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
 
           {/* Left column: Evaluation stacked above Not Awarded */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
