@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import * as XLSX from "xlsx";
 
-const COLUMNS = ["evaluation", "ongoing", "archive"];
+const COLUMNS = ["evaluation", "not_awarded", "ongoing", "archive"];
 const COLUMN_META = {
   evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
+  not_awarded: { title: "Not Awarded", sub: "Evaluated but not awarded by the client" },
   ongoing: { title: "Ongoing", sub: "Approved — work in progress" },
-  archive: { title: "Archive", sub: "Closed, delivered, or not awarded" },
+  archive: { title: "Archive", sub: "Closed or delivered" },
 };
 
 const EVAL_STAGE_LIBRARY = [
@@ -553,7 +554,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
   const pct = totalStages ? Math.round((doneCount / totalStages) * 100) : 0;
   const hasOpenIssue = (p.blockingIssues || []).some((b) => !b.resolved);
 
-  if (p.column === "archive") {
+  if (p.column === "archive" || p.column === "not_awarded") {
     return (
       <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: 5, padding: "12px 14px", cursor: "pointer" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -674,7 +675,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
               </div>
             </div>
           )}
-          {p.column !== "archive" && (
+         {p.column !== "archive" && p.column !== "not_awarded" && (
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {doneCount}/{(p.stages || []).length} done</span>
               <div style={{ marginTop: 8 }}>
@@ -691,7 +692,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             </div>
           )}
 
-          {p.column !== "archive" && (
+         {p.column !== "archive" && p.column !== "not_awarded" && (
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>Blocking issues</span>
               <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Visible to everyone on the board until resolved.</p>
@@ -732,10 +733,10 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           <button onClick={() => onDelete(p)} style={btnDanger}>Delete</button>
           <div style={{ display: "flex", gap: 10 }}>
             {p.column === "evaluation" && (
-              <button onClick={() => onArchiveNotAwarded(p)} style={btnGhost}>Archive — not awarded</button>
+              <button onClick={() => onArchiveNotAwarded(p)} style={btnGhost}>Mark not awarded</button>
             )}
             <button onClick={() => setEditing(true)} style={btnGhost}>Edit details</button>
-            {p.column !== "archive" && (
+            {p.column !== "archive" && p.column !== "not_awarded" && (
               <button onClick={() => onRequestAdvance(p)} style={btnGreen}>
                 {p.column === "evaluation" ? "Approve & move to Ongoing" : "Close & archive"}
               </button>
@@ -884,11 +885,11 @@ const requestAdvance = (p) => {
 
   const requestArchiveNotAwarded = (p) => {
     setConfirmAction({
-      title: "Archive as not awarded?",
-      message: `Confirm that ${p.po} — ${p.name} was not awarded by the client and should be archived without execution.`,
+      title: "Mark as not awarded?",
+      message: `Confirm that ${p.po} — ${p.name} was not awarded by the client.`,
       onConfirm: async () => {
         const now = new Date().toISOString();
-        const updated = { ...p, column: "archive", closedAt: now, updatedBy: currentUser, history: addHistory(p, "archived — not awarded", currentUser) };
+        const updated = { ...p, column: "not_awarded", closedAt: now, updatedBy: currentUser, history: addHistory(p, "marked as not awarded", currentUser) };
         await supabase.from("projects").update({ ...toRow(updated), awarded: false }).eq("id", p.id);
         setConfirmAction(null);
         setOpenProject(null);
@@ -979,9 +980,9 @@ const requestAdvance = (p) => {
         <ManpowerWidget entries={manpower} onOpenEditor={() => setShowManpowerEditor(true)} />
         <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 0.85fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
           {COLUMNS.map((col) => (
-            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${col === "evaluation" ? COLORS.amber : col === "ongoing" ? COLORS.green : COLORS.black}` }}>
+            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${col === "evaluation" ? COLORS.amber : col === "ongoing" ? COLORS.green : col === "not_awarded" ? COLORS.rust : COLORS.black}` }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
                 <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
                 <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
