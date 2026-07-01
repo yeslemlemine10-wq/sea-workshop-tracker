@@ -420,6 +420,7 @@ function ProjectModal({ initial, defaultColumn, onClose, onSave, currentUser }) 
 
 const handleSave = () => {
     if (!name.trim()) { setError("Project name is required."); return; }
+    if (column === "evaluation" && !po.trim()) { setError("RFQ number is required."); return; }
     if (column !== "evaluation" && !po.trim()) { setError("PO number is required for this stage."); return; }
     const base = {
       ...(initial || {}),
@@ -440,7 +441,7 @@ const handleSave = () => {
         <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
           <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={labelSmall}>{column === "evaluation" ? "PO number (if known)" : "PO number *"}</span>
+              <span style={labelSmall}>{column === "evaluation" ? "RFQ number *" : "PO number *"}</span>
               <input value={po} onChange={(e) => setPo(e.target.value)} placeholder="e.g. PO-2026-114" style={inputStyle} />
             </label>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -558,7 +559,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
     return (
       <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: 5, padding: "12px 14px", cursor: "pointer" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
+          <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
           {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}
         </div>
        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
@@ -579,7 +580,7 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
     <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}`, borderRadius: 5, padding: "13px 14px", cursor: "pointer" }}>
       {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
+        <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
         {p.siteType === "external" && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.rust, letterSpacing: 0.6, border: `1px solid ${COLORS.rust}`, padding: "1px 6px", borderRadius: 3 }}>EXTERNAL</span>}
       </div>
       <h3 style={{ fontSize: 15, fontWeight: 500, margin: "0 0 4px", lineHeight: 1.3 }}>{p.name}</h3>
@@ -631,7 +632,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
       <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 680, maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 22px 14px", borderBottom: `1px solid ${COLORS.line}` }}>
           <div>
-            <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
+            <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
             <h2 style={{ fontSize: 19, margin: "2px 0 0" }}>{p.name}</h2>
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", fontSize: 22, lineHeight: 1, color: COLORS.textMute, cursor: "pointer" }}>×</button>
@@ -755,7 +756,7 @@ function exportToExcel(projects) {
     const pct = total ? Math.round((done / total) * 100) : "";
     return {
       "Column": p.column,
-      "PO Number": p.po,
+      "RFQ / PO Number": p.po,
       "Project Name": p.name,
       "Client": p.client,
       "Supervisor": p.supervisor,
