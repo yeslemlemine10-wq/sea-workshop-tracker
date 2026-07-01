@@ -981,9 +981,82 @@ const requestAdvance = (p) => {
         <ManpowerWidget entries={manpower} onOpenEditor={() => setShowManpowerEditor(true)} />
         <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 0.85fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
-          {COLUMNS.map((col) => (
-            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${col === "evaluation" ? COLORS.amber : col === "ongoing" ? COLORS.green : col === "not_awarded" ? COLORS.rust : COLORS.black}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
+
+          {/* Left column: Evaluation stacked above Not Awarded */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {["evaluation", "not_awarded"].map((col) => (
+              <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${col === "evaluation" ? COLORS.amber : COLORS.rust}` }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
+                  <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
+                  <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
+                </div>
+                <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>{COLUMN_META[col].sub}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
+                  {col === "evaluation" && (
+                    <button onClick={() => { setCreateColumn("evaluation"); setShowModal(true); }} style={{ ...btnGhost, fontSize: 12 }}>+ New evaluation</button>
+                  )}
+                  {byColumn(col).length === 0 && (
+                    <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
+                      Nothing here yet.
+                    </div>
+                  )}
+                  {byColumn(col).map((p) => (
+                    <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
+                  ))}
+                  {col === "evaluation" && byColumn("evaluation").length > 0 && (
+                    <p style={{ fontSize: 11, color: COLORS.textMute, fontStyle: "italic", marginTop: 4 }}>
+                      Not awarded? Open a project and use "Mark not awarded" from its detail view.
+                    </p>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {/* Middle column: Ongoing */}
+          {["ongoing"].map((col) => (
+            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${COLORS.green}` }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
+                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
+              </div>
+              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>{COLUMN_META[col].sub}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
+                {byColumn(col).length === 0 && (
+                  <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
+                    Nothing here yet.
+                  </div>
+                )}
+                {byColumn(col).map((p) => (
+                  <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {/* Right column: Archive */}
+          {["archive"].map((col) => (
+            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${COLORS.black}` }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
+                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
+              </div>
+              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>{COLUMN_META[col].sub}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
+                {byColumn(col).length === 0 && (
+                  <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
+                    Nothing here yet.
+                  </div>
+                )}
+                {byColumn(col).map((p) => (
+                  <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
+                ))}
+              </div>
+            </section>
+          ))}
+
+        </div>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
                 <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
                 <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
