@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import * as XLSX from "xlsx";
 
-const COLUMNS = ["evaluation", "not_awarded", "ongoing", "archive"];
+const  = ["evaluation", "not_awarded", "ongoing", "archive"];
 const COLUMN_META = {
   evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
   not_awarded: { title: "Not Awarded", sub: "Evaluated but not awarded by the client" },
@@ -638,7 +638,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", fontSize: 22, lineHeight: 1, color: COLORS.textMute, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: "18px 22px", overflowY: "auto", flex: 1 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplate: "1fr 1fr", gap: "12px 20px", marginBottom: 18 }}>
             <div><span style={metaK}>Client</span><span style={metaV}>{p.client || "—"}</span></div>
             <div><span style={metaK}>Supervisor</span><span style={metaV}>{p.supervisor || "—"}</span></div>
             <div><span style={metaK}>Type</span><span style={metaV}>{p.siteType === "external" ? "External / site" : "Workshop"}</span></div>
@@ -981,7 +981,7 @@ const requestAdvance = (p) => {
         <ManpowerWidget entries={manpower} onOpenEditor={() => setShowManpowerEditor(true)} />
         <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplate: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
 
           {/* Left column: Evaluation stacked above Not Awarded */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1052,33 +1052,6 @@ const requestAdvance = (p) => {
                 {byColumn(col).map((p) => (
                   <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
                 ))}
-              </div>
-            </section>
-          ))}
-
-        </div>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
-                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
-                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
-              </div>
-              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>{COLUMN_META[col].sub}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
-                {col === "evaluation" && (
-                  <button onClick={() => { setCreateColumn("evaluation"); setShowModal(true); }} style={{ ...btnGhost, fontSize: 12 }}>+ New evaluation</button>
-                )}
-                {byColumn(col).length === 0 && (
-                  <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
-                    Nothing here yet.
-                  </div>
-                )}
-                {byColumn(col).map((p) => (
-                  <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
-                ))}
-                {col === "evaluation" && byColumn("evaluation").length > 0 && (
-                  <p style={{ fontSize: 11, color: COLORS.textMute, fontStyle: "italic", marginTop: 4 }}>
-                    Not awarded? Open a project and use "Archive — not awarded" from its detail view.
-                  </p>
-                )}
               </div>
             </section>
           ))}
