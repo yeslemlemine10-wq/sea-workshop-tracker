@@ -844,8 +844,21 @@ export default function Home() {
   const [closingProject, setClosingProject] = useState(null);
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem("sea_tracker_user") : null;
-    if (saved) setCurrentUser(saved);
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem("sea_tracker_session") : null;
+      if (raw) {
+        const session = JSON.parse(raw);
+        const refreshes = (session?.refreshes || 0) + 1;
+        if (session?.name && session?.expires > Date.now() && refreshes <= 3) {
+          window.localStorage.setItem("sea_tracker_session", JSON.stringify({ ...session, refreshes }));
+          setCurrentUser(session.name);
+        } else {
+          window.localStorage.removeItem("sea_tracker_session");
+        }
+      }
+    } catch (e) {
+      window.localStorage.removeItem("sea_tracker_session");
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -865,7 +878,11 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [loadAll]);
 
-  const setUser = (name) => { window.localStorage.setItem("sea_tracker_user", name); setCurrentUser(name); };
+  const setUser = (name) => {
+    const session = { name, expires: Date.now() + 8 * 60 * 60 * 1000, refreshes: 0 };
+    window.localStorage.setItem("sea_tracker_session", JSON.stringify(session));
+    setCurrentUser(name);
+  };
 
   const addHistory = (p, action, who) => {
     const hist = (p.history || []).slice(-19);
@@ -1014,9 +1031,17 @@ const requestAdvance = (p) => {
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <input placeholder="Search PO, name, client…" value={filter} onChange={(e) => setFilter(e.target.value)} style={{ background: "#262A26", border: "1px solid #3A3F3A", color: COLORS.white, padding: "8px 12px", borderRadius: 4, fontSize: 13, width: 190 }} />
           <button onClick={() => exportToExcel(projects)} style={{ ...btnGhost, background: "transparent", borderColor: "#3A3F3A", color: COLORS.white }}>Export ⤓</button>
-          <button onClick={() => { window.localStorage.removeItem("sea_tracker_user"); setCurrentUser(null); }} title="Switch user" style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "1px solid #3A3F3A", color: COLORS.white, padding: "6px 12px 6px 6px", borderRadius: 20, fontSize: 13, cursor: "pointer" }}>
-            <Avatar name={currentUser} /> <span>{currentUser}</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, border: "1px solid #3A3F3A", color: COLORS.white, padding: "6px 12px 6px 6px", borderRadius: 20, fontSize: 13 }}>
+              <Avatar name={currentUser} /> <span>{currentUser}</span>
+            </div>
+            <button
+              onClick={() => { window.localStorage.removeItem("sea_tracker_session"); setCurrentUser(null); }}
+              title="Disconnect"
+              style={{ background: "transparent", border: "1px solid #3A3F3A", color: COLORS.rust, padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3 }}>
+              Disconnect
+            </button>
+          </div>
           <button onClick={() => { setCreateColumn("evaluation"); setShowModal(true); }} style={btnGreen}>+ New project</button>
         </div>
       </header>
