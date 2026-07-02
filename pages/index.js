@@ -463,6 +463,9 @@ const handleSave = () => {
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
               <span style={labelSmall}>Project type</span>
              <select value={siteType} onChange={(e) => setSiteType(e.target.value)} style={inputStyle}>
+                {!["lump_sum", "time_materials", "cost_plus"].includes(siteType) && (
+                  <option value={siteType} disabled>— select a type —</option>
+                )}
                 <option value="lump_sum">Lump Sum</option>
                 <option value="time_materials">Time & Materials</option>
                 <option value="cost_plus">Cost Plus</option>
@@ -470,7 +473,7 @@ const handleSave = () => {
             </label>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
               <span style={labelSmall}>Site / location</span>
-              <input value={site} onChange={(e) => setSite(e.target.value)} placeholder="e.g. Béni Nadji" disabled={siteType === "workshop"} style={inputStyle} />
+              <input value={site} onChange={(e) => setSite(e.target.value)} placeholder="e.g. Béni Nadji" style={inputStyle} />
             </label>
           </div>
           <div style={{ marginBottom: 16 }}>
