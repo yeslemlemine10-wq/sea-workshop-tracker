@@ -244,52 +244,7 @@ function NameGate({ onSet }) {
       </div>
     </div>
   );
-}>
-      <div style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, overflow: "hidden" }}>
-        <div style={{ background: COLORS.black, padding: "26px 22px 20px", textAlign: "center" }}>
-          <Logo size={56} />
-          <p style={{ color: COLORS.white, fontSize: 15, fontWeight: 600, margin: "12px 0 2px" }}>Welcome to SEA Engineering</p>
-          <p style={{ color: "#9AA39B", fontSize: 12.5, margin: 0 }}>Project Progress Live Dashboard</p>
-        </div>
-        <div style={{ padding: "18px 22px 14px" }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
-            <span style={labelSmall}>Your name</span>
-            <input
-              autoFocus value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Daouda SOW"
-              onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
-              style={inputStyle}
-            />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={labelSmall}>Password</span>
-            <input
-              type="password" value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
-              style={inputStyle}
-            />
-          </label>
-          {error && (
-            <div style={{ marginTop: 10, color: COLORS.rust, fontSize: 12.5, background: COLORS.rustLight, border: `1px solid ${COLORS.rust}`, borderRadius: 4, padding: "8px 10px" }}>
-              {error}
-            </div>
-          )}
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 22px", borderTop: `1px solid ${COLORS.line}` }}>
-          <button
-            disabled={!name.trim() || !password.trim() || loading}
-            onClick={handleLogin}
-            style={{ ...btnGreen, opacity: (!name.trim() || !password.trim() || loading) ? 0.5 : 1, cursor: (!name.trim() || !password.trim() || loading) ? "not-allowed" : "pointer" }}>
-            {loading ? "Checking…" : "Continue"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+
 function ManpowerWidget({ entries, onOpenEditor }) {
   const today = todayStr();
   const todays = entries.filter((e) => e.log_date === today);
