@@ -224,28 +224,27 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
 }
 
 function NameGate({ onSet }) {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async () => {
-    if (!name.trim() || !password.trim()) { setError("Please enter your name and password."); return; }
-    setLoading(true);
-    setError("");
-    const { data, error: dbError } = await supabase
-      .from("users")
-      .select("name")
-      .ilike("name", name.trim())
-      .eq("password", password.trim())
-      .limit(1);
-    setLoading(false);
-    if (dbError || !data || data.length === 0) { setError("Incorrect name or password. Please try again."); return; }
-    onSet(data[0].name);
-  };
-
+  const [val, setVal] = useState("");
   return (
     <div style={{ position: "fixed", inset: 0, background: COLORS.black, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}>
+      <div style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, overflow: "hidden" }}>
+        <div style={{ background: COLORS.black, padding: "26px 22px 20px", textAlign: "center" }}>
+          <Logo size={56} />
+          <p style={{ color: COLORS.white, fontSize: 15, fontWeight: 600, margin: "12px 0 2px" }}>Welcome to SEA Engineering</p>
+          <p style={{ color: "#9AA39B", fontSize: 12.5, margin: 0 }}>Project Progress Live Dashboard</p>
+        </div>
+        <div style={{ padding: "18px 22px 14px" }}>
+          <p style={{ fontSize: 12, color: COLORS.textMute, margin: "0 0 10px" }}>Enter your name so updates are tracked correctly.</p>
+          <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder="e.g. Daouda SOW"
+            onKeyDown={(e) => { if (e.key === "Enter" && val.trim()) onSet(val.trim()); }} style={inputStyle} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 22px", borderTop: `1px solid ${COLORS.line}` }}>
+          <button disabled={!val.trim()} onClick={() => onSet(val.trim())} style={{ ...btnGreen, opacity: val.trim() ? 1 : 0.5, cursor: val.trim() ? "pointer" : "not-allowed" }}>Continue</button>
+        </div>
+      </div>
+    </div>
+  );
+}>
       <div style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, overflow: "hidden" }}>
         <div style={{ background: COLORS.black, padding: "26px 22px 20px", textAlign: "center" }}>
           <Logo size={56} />
