@@ -238,10 +238,10 @@ function NameGate({ onSet }) {
       .select("name")
       .ilike("name", name.trim())
       .eq("password", password.trim())
-      .single();
+      .limit(1);
     setLoading(false);
-    if (dbError || !data) { setError("Incorrect name or password. Please try again."); return; }
-    onSet(data.name);
+    if (dbError || !data || data.length === 0) { setError("Incorrect name or password. Please try again."); return; }
+    onSet(data[0].name);
   };
 
   return (
