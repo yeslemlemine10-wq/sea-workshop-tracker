@@ -244,7 +244,7 @@ function NameGate({ onSet }) {
       </div>
     </div>
   );
-
+}
 function ManpowerWidget({ entries, onOpenEditor }) {
   const today = todayStr();
   const todays = entries.filter((e) => e.log_date === today);
