@@ -188,14 +188,35 @@ function StagePicker({ library, selected, onChange }) {
         <button type="button" onClick={addCustom} style={btnGhost}>Add</button>
       </div>
       {selected.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 10 }}>
-          <span style={{ fontSize: 11.5, color: COLORS.textMute, marginRight: 4 }}>Order:</span>
-          {selected.map((s, i) => (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: COLORS.paper2, borderRadius: 12, padding: "4px 5px 4px 10px", fontSize: 11.5 }}>
-              {i + 1}. {s.name}
-              <button type="button" onClick={() => onChange(selected.filter((_, x) => x !== i))} style={{ background: "none", border: "none", color: COLORS.textMute, fontSize: 15, lineHeight: 1, padding: "0 4px", cursor: "pointer" }}>×</button>
-            </span>
-          ))}
+        <div style={{ marginTop: 10 }}>
+          <span style={{ fontSize: 11.5, color: COLORS.textMute }}>Order: <em style={{ fontWeight: 400 }}>(drag to reorder)</em></span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 6 }}>
+            {selected.map((s, i) => (
+              <div
+                key={i}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData("text/plain", i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const from = parseInt(e.dataTransfer.getData("text/plain"));
+                  const to = i;
+                  if (from === to) return;
+                  const reordered = [...selected];
+                  const [moved] = reordered.splice(from, 1);
+                  reordered.splice(to, 0, moved);
+                  onChange(reordered);
+                }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, background: COLORS.paper2, borderRadius: 8, padding: "6px 8px 6px 10px", fontSize: 12, cursor: "grab", userSelect: "none" }}>
+                <span style={{ color: COLORS.textMute, fontSize: 13 }}>⠿</span>
+                <span style={{ flex: 1 }}>{i + 1}. {s.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(selected.filter((_, x) => x !== i))}
+                  style={{ background: "none", border: "none", color: COLORS.textMute, fontSize: 15, lineHeight: 1, padding: "0 4px", cursor: "pointer" }}>×</button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
