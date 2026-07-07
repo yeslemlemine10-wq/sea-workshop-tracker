@@ -224,7 +224,26 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
 }
 
 function NameGate({ onSet }) {
-  const [val, setVal] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!name.trim() || !password.trim()) { setError("Please enter your name and password."); return; }
+    setLoading(true);
+    setError("");
+    const { data, error: dbError } = await supabase
+      .from("users")
+      .select("name")
+      .ilike("name", name.trim())
+      .eq("password", password.trim())
+      .limit(1);
+    setLoading(false);
+    if (dbError || !data || data.length === 0) { setError("Incorrect name or password. Please try again."); return; }
+    onSet(data[0].name);
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: COLORS.black, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}>
       <div style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, overflow: "hidden" }}>
@@ -234,12 +253,39 @@ function NameGate({ onSet }) {
           <p style={{ color: "#9AA39B", fontSize: 12.5, margin: 0 }}>Project Progress Live Dashboard</p>
         </div>
         <div style={{ padding: "18px 22px 14px" }}>
-          <p style={{ fontSize: 12, color: COLORS.textMute, margin: "0 0 10px" }}>Enter your name so updates are tracked correctly.</p>
-          <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder="e.g. Daouda SOW"
-            onKeyDown={(e) => { if (e.key === "Enter" && val.trim()) onSet(val.trim()); }} style={inputStyle} />
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
+            <span style={labelSmall}>Your name</span>
+            <input
+              autoFocus value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Daouda SOW"
+              onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
+              style={inputStyle}
+            />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={labelSmall}>Password</span>
+            <input
+              type="password" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
+              style={inputStyle}
+            />
+          </label>
+          {error && (
+            <div style={{ marginTop: 10, color: COLORS.rust, fontSize: 12.5, background: COLORS.rustLight, border: `1px solid ${COLORS.rust}`, borderRadius: 4, padding: "8px 10px" }}>
+              {error}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 22px", borderTop: `1px solid ${COLORS.line}` }}>
-          <button disabled={!val.trim()} onClick={() => onSet(val.trim())} style={{ ...btnGreen, opacity: val.trim() ? 1 : 0.5, cursor: val.trim() ? "pointer" : "not-allowed" }}>Continue</button>
+          <button
+            disabled={!name.trim() || !password.trim() || loading}
+            onClick={handleLogin}
+            style={{ ...btnGreen, opacity: (!name.trim() || !password.trim() || loading) ? 0.5 : 1, cursor: (!name.trim() || !password.trim() || loading) ? "not-allowed" : "pointer" }}>
+            {loading ? "Checking…" : "Continue"}
+          </button>
         </div>
       </div>
     </div>
