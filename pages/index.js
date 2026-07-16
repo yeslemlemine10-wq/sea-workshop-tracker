@@ -630,8 +630,11 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
     return (
       <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: 5, padding: "12px 14px", cursor: "pointer" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
-          {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}
+          <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {p.client && <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textMute }}>{p.client}</span>}
+            {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}
+          </div>
         </div>
        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
         {p.client && <div style={{ fontSize: 12, color: COLORS.textMute, marginBottom: 2 }}>{p.client}</div>}
