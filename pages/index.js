@@ -535,6 +535,7 @@ const handleSave = () => {
                 <option value="lump_sum">Lump Sum</option>
                 <option value="time_materials">Time & Materials</option>
                 <option value="cost_plus">Cost Plus</option>
+                <option value="internal">Internal</option>
               </select>
             </label>
             <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -651,7 +652,11 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
       {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
-        {p.siteType && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, letterSpacing: 0.6, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>{p.siteType === "lump_sum" ? "LUMP SUM" : p.siteType === "time_materials" ? "T&M" : p.siteType === "cost_plus" ? "COST PLUS" : p.siteType.toUpperCase()}</span>}
+        {p.siteType && (
+          p.siteType === "internal"
+            ? <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.green, letterSpacing: 0.6, border: `1.5px solid ${COLORS.green}`, background: COLORS.greenLight, padding: "1px 7px", borderRadius: 3 }}>🏭 INTERNAL</span>
+            : <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, letterSpacing: 0.6, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>{p.siteType === "lump_sum" ? "LUMP SUM" : p.siteType === "time_materials" ? "T&M" : p.siteType === "cost_plus" ? "COST PLUS" : p.siteType.toUpperCase()}</span>
+        )}
       </div>
       <h3 style={{ fontSize: 15, fontWeight: 500, margin: "0 0 4px", lineHeight: 1.3 }}>{p.name}</h3>
       {p.client && <div style={{ fontSize: 12, color: COLORS.textMute, marginBottom: 2 }}>{p.client}</div>}
@@ -711,7 +716,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 18 }}>
             <div><span style={metaK}>Client</span><span style={metaV}>{p.client || "—"}</span></div>
             <div><span style={metaK}>Supervisor</span><span style={metaV}>{p.supervisor || "—"}</span></div>
-            <div><span style={metaK}>Type</span><span style={metaV}>{p.siteType === "lump_sum" ? "Lump Sum" : p.siteType === "time_materials" ? "Time & Materials" : p.siteType === "cost_plus" ? "Cost Plus" : p.siteType || "—"}</span></div>
+            <div><span style={metaK}>Type</span><span style={metaV}>{p.siteType === "internal" ? "Internal" : p.siteType === "lump_sum" ? "Lump Sum" : p.siteType === "time_materials" ? "Time & Materials" : p.siteType === "cost_plus" ? "Cost Plus" : p.siteType || "—"}</span></div>
             <div><span style={metaK}>Site</span><span style={metaV}>{p.site || "—"}</span></div>
             <div><span style={metaK}>Created</span><span style={metaV}>{fmtDate(p.createdAt?.slice(0, 10))}</span></div>
             {p.approvedAt && <div><span style={metaK}>Approved</span><span style={metaV}>{fmtDate(p.approvedAt.slice(0, 10))}</span></div>}
@@ -830,7 +835,7 @@ function exportToExcel(projects) {
       "Project Name": p.name,
       "Client": p.client,
       "Supervisor": p.supervisor,
-      "Type": p.siteType === "lump_sum" ? "Lump Sum" : p.siteType === "time_materials" ? "Time & Materials" : p.siteType === "cost_plus" ? "Cost Plus" : p.siteType || "",
+      "Type": p.siteType === "internal" ? "Internal" : p.siteType === "lump_sum" ? "Lump Sum" : p.siteType === "time_materials" ? "Time & Materials" : p.siteType === "cost_plus" ? "Cost Plus" : p.siteType || "",
       "Site": p.site,
       "DN Number": p.dnNumber,
       "DN Date": p.dnDate,
