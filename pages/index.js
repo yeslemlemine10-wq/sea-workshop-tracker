@@ -637,7 +637,6 @@ function ProjectCard({ p, onOpen, onRequestAdvance }) {
           </div>
         </div>
        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
-        {p.client && <div style={{ fontSize: 12, color: COLORS.textMute, marginBottom: 2 }}>{p.client}</div>}
         <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
         <div style={{ fontSize: 12, color: COLORS.textMute, marginTop: 2 }}>
           Invoice: {p.invoiceNumber || "—"}{" "}
