@@ -621,9 +621,12 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
 }
 
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
- const doneCount = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
-  const totalStages = (p.stages || []).length;
-  const pct = totalStages ? Math.round((doneCount / totalStages) * 100) : 0;
+const totalStages = (p.stages || []).length;
+  const pct = totalStages
+    ? p.column === "ongoing"
+      ? Math.round((p.stages || []).reduce((sum, s) => sum + (Number(s.pct) || 0), 0) / totalStages)
+      : Math.round(((p.stages || []).filter((s) => s.status === "done").length / totalStages) * 100)
+    : 0;
   const hasOpenIssue = (p.blockingIssues || []).some((b) => !b.resolved);
 
   if (p.column === "archive" || p.column === "not_awarded") {
@@ -704,6 +707,12 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
   }
 
  const doneCount = (p.stages || []).filter((s) => (p.column === "ongoing" ? deriveStageStatus(s.pct) : s.status) === "done").length;
+  const totalStagesD = (p.stages || []).length;
+  const overallPct = totalStagesD
+    ? p.column === "ongoing"
+      ? Math.round((p.stages || []).reduce((sum, s) => sum + (Number(s.pct) || 0), 0) / totalStagesD)
+      : Math.round((doneCount / totalStagesD) * 100)
+    : 0;
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}>
@@ -756,7 +765,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           )}
          {p.column !== "archive" && p.column !== "not_awarded" && (
             <div style={{ marginBottom: 16 }}>
-              <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {doneCount}/{(p.stages || []).length} done</span>
+              <span style={labelSmall}>{p.column === "evaluation" ? "Evaluation steps" : "Execution stages"} — {p.column === "ongoing" ? `${overallPct}% overall` : `${doneCount}/${(p.stages || []).length} done`}</span>
               <div style={{ marginTop: 8 }}>
               {(p.stages || []).map((s, i) => (
                   <StageBar
