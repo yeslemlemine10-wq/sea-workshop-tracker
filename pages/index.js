@@ -74,6 +74,8 @@ function fromRow(r) {
     history: r.history || [], createdAt: r.created_at, approvedAt: r.approved_at,
     closedAt: r.closed_at, updatedAt: r.updated_at, updatedBy: r.updated_by,
     awarded: r.awarded !== false,
+    prioritized: !!r.prioritized,
+    closed: !!r.closed,
   };
 }
 function toRow(p) {
@@ -84,6 +86,8 @@ function toRow(p) {
     invoice_number: p.invoiceNumber, invoice_communicated: p.invoiceCommunicated,
     attachments: p.attachments || [], blocking_issues: p.blockingIssues || [],
     history: p.history, approved_at: p.approvedAt, closed_at: p.closedAt,
+    prioritized: !!p.prioritized,
+    closed: !!p.closed,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
   };
 }
@@ -636,8 +640,8 @@ const totalStages = (p.stages || []).length;
           <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.po}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {p.client && <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textMute }}>{p.client}</span>}
-            {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}
-          </div>
+            {p.closed && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.white, background: COLORS.black, padding: "1px 6px", borderRadius: 3 }}>CLOSED</span>}
+          {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}          </div>
         </div>
        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
         <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
@@ -654,8 +658,8 @@ const totalStages = (p.stages || []).length;
   }
 
   return (
-    <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}`, borderRadius: 5, padding: "13px 14px", cursor: "pointer" }}>
-      {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
+    <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}`, borderRadius: 5, padding: "13px 14px", cursor: "pointer", borderLeft: p.prioritized ? `4px solid ${COLORS.amber}` : hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}` }}>
+      {p.prioritized && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.amber, marginBottom: 4 }}>📌 PRIORITY</div>}      {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
         {p.siteType && (
@@ -700,6 +704,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
   const [attachments, setAttachments] = useState(p.attachments || []);
   const [invoiceNumber, setInvoiceNumber] = useState(p.invoiceNumber || "");
   const [invoiceCommunicated, setInvoiceCommunicated] = useState(!!p.invoiceCommunicated);
+  const [closed, setClosed] = useState(!!p.closed);
   const [blockingIssues, setBlockingIssues] = useState(p.blockingIssues || []);
   
   if (editing) {
@@ -759,7 +764,15 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
                     <button type="button" onClick={() => setInvoiceCommunicated(false)} style={{ ...btnGhost, flex: 1, background: !invoiceCommunicated ? COLORS.rust : COLORS.paper, color: !invoiceCommunicated ? COLORS.white : COLORS.text, borderColor: !invoiceCommunicated ? COLORS.rust : COLORS.line }}>No</button>
                   </div>
                 </label>
-                <button onClick={() => onSave({ ...p, dnNumber, dnDate, invoiceNumber, invoiceCommunicated })} style={btnGhost}>Save</button>
+                <button onClick={() => onSave({ ...p, dnNumber, dnDate, invoiceNumber, invoiceCommunicated, closed })} style={btnGhost}>Save</button>
+              </div>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={labelSmall}>Closed?</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => setClosed(true)} style={{ ...btnGhost, background: closed ? COLORS.black : COLORS.paper, color: closed ? COLORS.white : COLORS.text, borderColor: closed ? COLORS.black : COLORS.line, padding: "6px 14px" }}>✓ Closed</button>
+                  <button type="button" onClick={() => setClosed(false)} style={{ ...btnGhost, background: !closed ? COLORS.paper : COLORS.paper, color: COLORS.text, borderColor: COLORS.line, padding: "6px 14px" }}>Not yet</button>
+                </div>
+                {closed && <span style={{ fontSize: 11.5, color: COLORS.textMute, fontStyle: "italic" }}>This project is administratively closed.</span>}
               </div>
             </div>
           )}
@@ -823,7 +836,9 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             {p.column === "evaluation" && (
               <button onClick={() => onArchiveNotAwarded(p)} style={btnGhost}>Mark not awarded</button>
             )}
-            <button onClick={() => setEditing(true)} style={btnGhost}>Edit details</button>
+            <button onClick={() => onSave({ ...p, prioritized: !p.prioritized })} style={{ ...btnGhost, borderColor: p.prioritized ? COLORS.amber : COLORS.line, color: p.prioritized ? COLORS.amber : COLORS.text }}>
+              {p.prioritized ? "📌 Pinned" : "📌 Pin"}
+            </button>
             {p.column !== "archive" && p.column !== "not_awarded" && (
               <button onClick={() => onRequestAdvance(p)} style={btnGreen}>
                 {p.column === "evaluation" ? "Approve & move to Ongoing" : "Close & archive"}
@@ -1042,7 +1057,9 @@ const requestAdvance = (p) => {
     const q = filter.toLowerCase();
     return p.po.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || (p.client || "").toLowerCase().includes(q);
   });
-  const byColumn = (col) => filtered.filter((p) => p.column === col);
+  const byColumn = (col) => filtered
+    .filter((p) => p.column === col)
+    .sort((a, b) => (b.prioritized ? 1 : 0) - (a.prioritized ? 1 : 0));
   const totalActive = projects.filter((p) => p.column !== "archive").length;
   const totalDone = projects.filter((p) => p.column === "archive").length;
 
@@ -1063,7 +1080,7 @@ const requestAdvance = (p) => {
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <span style={{ fontFamily: "monospace", fontSize: 19, fontWeight: 600, color: COLORS.green }}>{totalDone}</span>
-            <span style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.8, color: "#9AA39B" }}>archived</span>
+            <span style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.8, color: "#9AA39B" }}>completed</span>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
