@@ -634,7 +634,7 @@ function NotAwardedModal({ project, onClose, onConfirm }) {
         <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Mark "{project.name}" as not awarded</h3>
         <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Optionally enter the reason this project was not awarded.</p>
         <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
-          <span style={labelSmall}>Reason (optional)</span>
+          <span style={labelSmall}>Reason</span>
           <textarea
             autoFocus value={reason}
             onChange={(e) => setReason(e.target.value)}
