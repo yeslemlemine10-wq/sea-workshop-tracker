@@ -632,7 +632,7 @@ function NotAwardedModal({ project, onClose, onConfirm }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 200 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, padding: "20px 22px" }}>
         <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Mark "{project.name}" as not awarded</h3>
-        <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Optionally enter the reason this project was not awarded.</p>
+        <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Enter the reason this project was not awarded.</p>
         <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
           <span style={labelSmall}>Reason</span>
           <textarea
