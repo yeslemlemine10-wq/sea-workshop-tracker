@@ -833,12 +833,15 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
         <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 22px", borderTop: `1px solid ${COLORS.line}` }}>
           <button onClick={() => onDelete(p)} style={btnDanger}>Delete</button>
           <div style={{ display: "flex", gap: 10 }}>
-            {p.column === "evaluation" && (
+            {(p.column === "evaluation" || p.column === "ongoing") && (
               <button onClick={() => onArchiveNotAwarded(p)} style={btnGhost}>Mark not awarded</button>
             )}
-            <button onClick={() => onSave({ ...p, prioritized: !p.prioritized })} style={{ ...btnGhost, borderColor: p.prioritized ? COLORS.amber : COLORS.line, color: p.prioritized ? COLORS.amber : COLORS.text }}>
+            <button
+              onClick={() => onSave({ ...p, prioritized: !p.prioritized })}
+              style={{ ...btnGhost, borderColor: p.prioritized ? COLORS.amber : COLORS.line, color: p.prioritized ? COLORS.amber : COLORS.text }}>
               {p.prioritized ? "📌 Pinned" : "📌 Pin"}
             </button>
+            <button onClick={() => setEditing(true)} style={btnGhost}>Edit details</button>
             {p.column !== "archive" && p.column !== "not_awarded" && (
               <button onClick={() => onRequestAdvance(p)} style={btnGreen}>
                 {p.column === "evaluation" ? "Approve & move to Ongoing" : "Close & archive"}
