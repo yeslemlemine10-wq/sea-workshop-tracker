@@ -7,7 +7,7 @@ const COLUMN_META = {
   evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
   not_awarded: { title: "Not Awarded", sub: "Evaluated but not awarded by the client" },
   ongoing: { title: "Ongoing", sub: "Approved — work in progress" },
-  archive: { title: "Archive", sub: "Closed or delivered" },
+  archive: { title: "Archive", sub: "Completed*" },
 };
 
 const EVAL_STAGE_LIBRARY = [
@@ -76,6 +76,7 @@ function fromRow(r) {
     awarded: r.awarded !== false,
     prioritized: !!r.prioritized,
     closed: !!r.closed,
+    notAwardedReason: r.not_awarded_reason || "",
   };
 }
 function toRow(p) {
@@ -88,6 +89,7 @@ function toRow(p) {
     history: p.history, approved_at: p.approvedAt, closed_at: p.closedAt,
     prioritized: !!p.prioritized,
     closed: !!p.closed,
+    not_awarded_reason: p.notAwardedReason,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
   };
 }
@@ -624,6 +626,32 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
   );
 }
 
+function NotAwardedModal({ project, onClose, onConfirm }) {
+  const [reason, setReason] = useState(project.notAwardedReason || "");
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 200 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, padding: "20px 22px" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>Mark "{project.name}" as not awarded</h3>
+        <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Optionally enter the reason this project was not awarded.</p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
+          <span style={labelSmall}>Reason (optional)</span>
+          <textarea
+            autoFocus value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Budget exceeded, competitor offered lower price…"
+            rows={3}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </label>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={() => onConfirm(reason.trim())} style={{ ...btnGreen, background: COLORS.rust }}>Confirm — not awarded</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProjectCard({ p, onOpen, onRequestAdvance }) {
 const totalStages = (p.stages || []).length;
   const pct = totalStages
@@ -644,6 +672,9 @@ const totalStages = (p.stages || []).length;
           {p.awarded === false && <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textMute, border: `1px solid ${COLORS.line}`, padding: "1px 6px", borderRadius: 3 }}>NOT AWARDED</span>}          </div>
         </div>
        <h3 style={{ fontSize: 14.5, fontWeight: 500, margin: "6px 0 4px" }}>{p.name}</h3>
+        {p.column === "not_awarded" && p.notAwardedReason && (
+          <div style={{ fontSize: 11.5, color: COLORS.rust, marginBottom: 4, fontStyle: "italic" }}>"{p.notAwardedReason}"</div>
+        )}
         <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
         <div style={{ fontSize: 12, color: COLORS.textMute, marginTop: 2 }}>
           Invoice: {p.invoiceNumber || "—"}{" "}
@@ -898,6 +929,7 @@ export default function Home() {
   const [showManpowerEditor, setShowManpowerEditor] = useState(false);
   const [advancingProject, setAdvancingProject] = useState(null);
   const [closingProject, setClosingProject] = useState(null);
+  const [notAwardedProject, setNotAwardedProject] = useState(null);
 
   useEffect(() => {
     try {
@@ -996,6 +1028,15 @@ const requestAdvance = (p) => {
     if (openProject && openProject.id === p.id) setOpenProject(updated);
     loadAll();
   };
+  const handleConfirmNotAwarded = async (reason) => {
+    const p = notAwardedProject;
+    const now = new Date().toISOString();
+    const updated = { ...p, column: "not_awarded", closedAt: now, notAwardedReason: reason, updatedBy: currentUser, history: addHistory(p, "marked as not awarded", currentUser) };
+    await supabase.from("projects").update({ ...toRow(updated), awarded: false }).eq("id", p.id);
+    setNotAwardedProject(null);
+    setOpenProject(null);
+    loadAll();
+  };
   const handleConfirmAdvanceToOngoing = async (po) => {
     const p = advancingProject;
     const now = new Date().toISOString();
@@ -1007,18 +1048,7 @@ const requestAdvance = (p) => {
   };
 
   const requestArchiveNotAwarded = (p) => {
-    setConfirmAction({
-      title: "Mark as not awarded?",
-      message: `Confirm that ${p.po} — ${p.name} was not awarded by the client.`,
-      onConfirm: async () => {
-        const now = new Date().toISOString();
-        const updated = { ...p, column: "not_awarded", closedAt: now, updatedBy: currentUser, history: addHistory(p, "marked as not awarded", currentUser) };
-        await supabase.from("projects").update({ ...toRow(updated), awarded: false }).eq("id", p.id);
-        setConfirmAction(null);
-        setOpenProject(null);
-        loadAll();
-      },
-    });
+    setNotAwardedProject(p);
   };
 
   const handleSetStagePct = async (p, idx, pct) => {
@@ -1213,6 +1243,9 @@ const requestAdvance = (p) => {
       )}
       {closingProject && (
         <CloseArchiveModal project={closingProject} onClose={() => setClosingProject(null)} onConfirm={handleConfirmCloseArchive} />
+      )}
+      {notAwardedProject && (
+        <NotAwardedModal project={notAwardedProject} onClose={() => setNotAwardedProject(null)} onConfirm={handleConfirmNotAwarded} />
       )}
       {confirmAction && (
         <ConfirmDialog title={confirmAction.title} message={confirmAction.message} onConfirm={confirmAction.onConfirm} onCancel={() => setConfirmAction(null)} />
