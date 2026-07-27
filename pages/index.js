@@ -7,7 +7,7 @@ const COLUMN_META = {
   evaluation: { title: "Evaluation", sub: "RFQ — technical & commercial offer in progress" },
   not_awarded: { title: "Not Awarded", sub: "Evaluated but not awarded by the client" },
   ongoing: { title: "Ongoing", sub: "Approved — work in progress" },
-  archive: { title: "Archive", sub: "Completed*" },
+  archive: { title: "Completed", sub: "Delivered or Closed" },
 };
 
 const EVAL_STAGE_LIBRARY = [
