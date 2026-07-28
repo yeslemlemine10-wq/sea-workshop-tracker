@@ -675,15 +675,22 @@ const totalStages = (p.stages || []).length;
         {p.column === "not_awarded" && p.notAwardedReason && (
           <div style={{ fontSize: 11.5, color: COLORS.rust, marginBottom: 4, fontStyle: "italic" }}>"{p.notAwardedReason}"</div>
         )}
-        <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
-        <div style={{ fontSize: 12, color: COLORS.textMute, marginTop: 2 }}>
-          Invoice: {p.invoiceNumber || "—"}{" "}
-          {p.invoiceNumber && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: p.invoiceCommunicated ? COLORS.greenDark : COLORS.rust }}>
-              ({p.invoiceCommunicated ? "communicated" : "not communicated"})
-            </span>
-          )}
-        </div>
+        {p.column === "archive" && (
+          <>
+            <div style={{ fontSize: 12, color: COLORS.textMute }}>DN: {p.dnNumber || "—"} {p.dnDate ? `· ${fmtDate(p.dnDate)}` : ""}</div>
+            <div style={{ fontSize: 12, color: COLORS.textMute, marginTop: 2 }}>
+              Invoice: {p.invoiceNumber || "—"}{" "}
+              {p.invoiceNumber && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: p.invoiceCommunicated ? COLORS.greenDark : COLORS.rust }}>
+                  ({p.invoiceCommunicated ? "communicated" : "not communicated"})
+                </span>
+              )}
+            </div>
+          </>
+        )}
+        {p.column === "not_awarded" && p.notAwardedReason && (
+          <div style={{ fontSize: 11.5, color: COLORS.rust, marginTop: 4, fontStyle: "italic" }}>"{p.notAwardedReason}"</div>
+        )}
       </div>
     );
   }
