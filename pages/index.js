@@ -78,6 +78,7 @@ function fromRow(r) {
     closed: !!r.closed,
     notAwardedReason: r.not_awarded_reason || "",
     onHold: !!r.on_hold,
+    onHoldReason: r.on_hold_reason || "",
   };
 }
 function toRow(p) {
@@ -92,6 +93,7 @@ function toRow(p) {
     closed: !!p.closed,
     not_awarded_reason: p.notAwardedReason,
     on_hold: !!p.onHold,
+    on_hold_reason: p.onHoldReason,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
   };
 }
@@ -628,6 +630,43 @@ function CloseArchiveModal({ project, onClose, onConfirm }) {
   );
 }
 
+function OnHoldModal({ project, onClose, onConfirm }) {
+  const [reason, setReason] = useState(project.onHoldReason || "");
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,19,21,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 200 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: COLORS.white, borderRadius: 8, width: "100%", maxWidth: 400, padding: "20px 22px" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 8px" }}>
+          {project.onHold ? `Remove hold on "${project.name}"?` : `Put "${project.name}" on hold`}
+        </h3>
+        {!project.onHold && (
+          <>
+            <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 14px" }}>Enter the reason this project is being put on hold.</p>
+            <label style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
+              <span style={labelSmall}>Reason</span>
+              <textarea
+                autoFocus value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Waiting for client approval, material shortage…"
+                rows={3}
+                style={{ ...inputStyle, resize: "vertical" }}
+              />
+            </label>
+          </>
+        )}
+        {project.onHold && (
+          <p style={{ fontSize: 13.5, color: COLORS.textMute, margin: "0 0 18px" }}>This will remove the hold and resume the project.</p>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={() => onConfirm(reason.trim())} style={{ ...btnGreen, background: project.onHold ? COLORS.green : COLORS.amber }}>
+            {project.onHold ? "Remove hold" : "Put on hold"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NotAwardedModal({ project, onClose, onConfirm }) {
   const [reason, setReason] = useState(project.notAwardedReason || "");
   return (
@@ -739,7 +778,7 @@ const totalStages = (p.stages || []).length;
 const metaK = { display: "block", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5, color: COLORS.textMute };
 const metaV = { display: "block", fontSize: 13, fontWeight: 500, marginTop: 1 };
 
-function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onSetStagePct, onCycleStage, currentUser }) {
+function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchiveNotAwarded, onSetStagePct, onCycleStage, onHoldRequest, currentUser }) {
   const [editing, setEditing] = useState(false);
   const [dnNumber, setDnNumber] = useState(p.dnNumber || "");
   const [dnDate, setDnDate] = useState(p.dnDate || "");
@@ -835,6 +874,13 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             </div>
           )}
 
+        {p.onHold && p.onHoldReason && (
+            <div style={{ marginBottom: 16, background: COLORS.amberLight, border: `1px solid ${COLORS.amber}`, borderRadius: 6, padding: "10px 14px" }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: COLORS.amber, display: "block", marginBottom: 4 }}>⏸ ON HOLD</span>
+              <span style={{ fontSize: 13, color: COLORS.text }}>{p.onHoldReason}</span>
+            </div>
+          )}
+
          {p.column !== "archive" && p.column !== "not_awarded" && (
             <div style={{ marginBottom: 16 }}>
               <span style={labelSmall}>Blocking issues</span>
@@ -880,7 +926,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
             )}
             {(p.column === "evaluation" || p.column === "ongoing") && (
               <button
-                onClick={() => onSave({ ...p, onHold: !p.onHold })}
+                onClick={() => onHoldRequest(p)}
                 style={{ ...btnGhost, borderColor: p.onHold ? COLORS.amber : COLORS.line, color: p.onHold ? COLORS.amber : COLORS.text, background: p.onHold ? COLORS.amberLight : "transparent" }}>
                 {p.onHold ? "⏸ On Hold" : "⏸ Hold"}
               </button>
@@ -948,6 +994,7 @@ export default function Home() {
   const [advancingProject, setAdvancingProject] = useState(null);
   const [closingProject, setClosingProject] = useState(null);
   const [notAwardedProject, setNotAwardedProject] = useState(null);
+  const [holdProject, setHoldProject] = useState(null);
 
   useEffect(() => {
     try {
@@ -1053,6 +1100,21 @@ const requestAdvance = (p) => {
     await supabase.from("projects").update({ ...toRow(updated), awarded: false }).eq("id", p.id);
     setNotAwardedProject(null);
     setOpenProject(null);
+    loadAll();
+  };
+  const handleConfirmHold = async (reason) => {
+    const p = holdProject;
+    const isCurrentlyOnHold = p.onHold;
+    const updated = {
+      ...p,
+      onHold: !isCurrentlyOnHold,
+      onHoldReason: isCurrentlyOnHold ? "" : reason,
+      updatedBy: currentUser,
+      history: addHistory(p, isCurrentlyOnHold ? "removed hold" : `put on hold — ${reason || "no reason given"}`, currentUser),
+    };
+    await supabase.from("projects").update(toRow(updated)).eq("id", p.id);
+    setHoldProject(null);
+    if (openProject && openProject.id === p.id) setOpenProject(updated);
     loadAll();
   };
   const handleConfirmAdvanceToOngoing = async (po) => {
@@ -1271,6 +1333,7 @@ const requestAdvance = (p) => {
           onArchiveNotAwarded={requestArchiveNotAwarded}
           onSetStagePct={handleSetStagePct}
           onCycleStage={handleCycleStage}
+          onHoldRequest={(p) => setHoldProject(p)}
           currentUser={currentUser}
         />
       )}
@@ -1286,6 +1349,9 @@ const requestAdvance = (p) => {
       )}
       {notAwardedProject && (
         <NotAwardedModal project={notAwardedProject} onClose={() => setNotAwardedProject(null)} onConfirm={handleConfirmNotAwarded} />
+      )}
+      {holdProject && (
+        <OnHoldModal project={holdProject} onClose={() => setHoldProject(null)} onConfirm={handleConfirmHold} />
       )}
       {confirmAction && (
         <ConfirmDialog title={confirmAction.title} message={confirmAction.message} onConfirm={confirmAction.onConfirm} onCancel={() => setConfirmAction(null)} />
