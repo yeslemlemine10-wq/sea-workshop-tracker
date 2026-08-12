@@ -77,6 +77,7 @@ function fromRow(r) {
     prioritized: !!r.prioritized,
     closed: !!r.closed,
     notAwardedReason: r.not_awarded_reason || "",
+    onHold: !!r.on_hold,
   };
 }
 function toRow(p) {
@@ -90,6 +91,7 @@ function toRow(p) {
     prioritized: !!p.prioritized,
     closed: !!p.closed,
     not_awarded_reason: p.notAwardedReason,
+    on_hold: !!p.onHold,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
   };
 }
@@ -696,8 +698,10 @@ const totalStages = (p.stages || []).length;
   }
 
   return (
-    <div onClick={() => onOpen(p)} style={{ background: COLORS.paper, border: hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}`, borderRadius: 5, padding: "13px 14px", cursor: "pointer", borderLeft: p.prioritized ? `4px solid ${COLORS.amber}` : hasOpenIssue ? `1.5px solid ${COLORS.rust}` : `1px solid ${COLORS.line}` }}>
-      {p.prioritized && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.amber, marginBottom: 4 }}>📌 PRIORITY</div>}      {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
+    <div onClick={() => onOpen(p)} style={{ background: p.onHold ? COLORS.amberLight : COLORS.paper, border: hasOpenIssue ? `1.5px solid ${COLORS.rust}` : p.onHold ? `1.5px solid ${COLORS.amber}` : `1px solid ${COLORS.line}`, borderRadius: 5, padding: "13px 14px", cursor: "pointer", borderLeft: p.prioritized ? `4px solid ${COLORS.amber}` : hasOpenIssue ? `1.5px solid ${COLORS.rust}` : p.onHold ? `1.5px solid ${COLORS.amber}` : `1px solid ${COLORS.line}` }}>
+      {p.prioritized && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.amber, marginBottom: 4 }}>📌 PRIORITY</div>}      
+      {p.onHold && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.amber, marginBottom: 4 }}>⏸ ON HOLD</div>}
+      {hasOpenIssue && <div style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.rust, marginBottom: 6 }}>⚠ BLOCKING ISSUE</div>}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: COLORS.black, background: COLORS.paper2, padding: "2px 7px", borderRadius: 3 }}>{p.column === "evaluation" ? `RFQ: ${p.po}` : p.po}</span>
         {p.siteType && (
@@ -873,6 +877,13 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           <div style={{ display: "flex", gap: 10 }}>
             {(p.column === "evaluation" || p.column === "ongoing") && (
               <button onClick={() => onArchiveNotAwarded(p)} style={btnGhost}>Mark not awarded</button>
+            )}
+            {(p.column === "evaluation" || p.column === "ongoing") && (
+              <button
+                onClick={() => onSave({ ...p, onHold: !p.onHold })}
+                style={{ ...btnGhost, borderColor: p.onHold ? COLORS.amber : COLORS.line, color: p.onHold ? COLORS.amber : COLORS.text, background: p.onHold ? COLORS.amberLight : "transparent" }}>
+                {p.onHold ? "⏸ On Hold" : "⏸ Hold"}
+              </button>
             )}
             <button
               onClick={() => onSave({ ...p, prioritized: !p.prioritized })}
@@ -1183,26 +1194,48 @@ const requestAdvance = (p) => {
             ))}
           </div>
 
-          {/* Middle column: Ongoing */}
-          {["ongoing"].map((col) => (
-            <section key={col} style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 200, display: "flex", flexDirection: "column", borderTop: `4px solid ${COLORS.green}` }}>
+          {/* Middle column: Ongoing split into External and Internal */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+            {/* Ongoing — external projects */}
+            <section style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 120, display: "flex", flexDirection: "column", borderTop: `4px solid ${COLORS.green}` }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
-                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>{COLUMN_META[col].title}</h2>
-                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn(col).length}</span>
+                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>Ongoing</h2>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn("ongoing").filter((p) => p.siteType !== "internal").length}</span>
               </div>
-              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>{COLUMN_META[col].sub}</p>
+              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>Approved — work in progress</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
-                {byColumn(col).length === 0 && (
+                {byColumn("ongoing").filter((p) => p.siteType !== "internal").length === 0 && (
                   <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
                     Nothing here yet.
                   </div>
                 )}
-                {byColumn(col).map((p) => (
+                {byColumn("ongoing").filter((p) => p.siteType !== "internal").map((p) => (
                   <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
                 ))}
               </div>
             </section>
-          ))}
+
+            {/* Ongoing Internal */}
+            <section style={{ background: COLORS.white, border: `1px solid ${COLORS.line}`, borderRadius: 6, minHeight: 120, display: "flex", flexDirection: "column", borderTop: `4px solid ${COLORS.greenDark}` }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "16px 18px 0" }}>
+                <h2 style={{ fontSize: 17, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.3 }}>🏭 Ongoing Internal</h2>
+                <span style={{ fontFamily: "monospace", fontSize: 13, color: COLORS.textMute, background: COLORS.paper2, padding: "2px 8px", borderRadius: 10 }}>{byColumn("ongoing").filter((p) => p.siteType === "internal").length}</span>
+              </div>
+              <p style={{ fontSize: 12, color: COLORS.textMute, margin: "4px 18px 14px" }}>Internal SEA Engineering projects</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 14px 16px", flex: 1 }}>
+                {byColumn("ongoing").filter((p) => p.siteType === "internal").length === 0 && (
+                  <div style={{ fontSize: 13, color: COLORS.textMute, border: `1.5px dashed ${COLORS.line}`, borderRadius: 6, padding: "18px 14px", textAlign: "center", lineHeight: 1.5 }}>
+                    Nothing here yet.
+                  </div>
+                )}
+                {byColumn("ongoing").filter((p) => p.siteType === "internal").map((p) => (
+                  <ProjectCard key={p.id} p={p} onOpen={setOpenProject} onRequestAdvance={requestAdvance} />
+                ))}
+              </div>
+            </section>
+
+          </div>
 
           {/* Right column: Archive */}
           {["archive"].map((col) => (
