@@ -427,9 +427,7 @@ function ActionPlanBanner({ projects, onSave }) {
   const [expandedId, setExpandedId] = useState(null);
   const [localPlans, setLocalPlans] = useState({});
 
-  const withIssues = projects.filter((p) =>
-    (p.blockingIssues || []).some((b) => !b.resolved)
-  );
+  const withIssues = projects.filter((p) => p.column !== "archive" && p.column !== "not_awarded");
   if (withIssues.length === 0) return null;
 
   const getPlan = (p) => localPlans[p.id] !== undefined ? localPlans[p.id] : (p.actionPlan || []);
@@ -459,7 +457,7 @@ function ActionPlanBanner({ projects, onSave }) {
   return (
     <div style={{ background: COLORS.white, border: `1.5px solid ${COLORS.amber}`, borderRadius: 6, padding: "12px 16px" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.amber, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-        📋 ACTION PLAN — {withIssues.length} project{withIssues.length > 1 ? "s" : ""}
+        📋 ACTION PLAN
       </div>
       {withIssues.map((p) => {
         const isExpanded = expandedId === p.id;
