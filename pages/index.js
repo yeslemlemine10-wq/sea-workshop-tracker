@@ -424,7 +424,6 @@ function BlockingIssuesBanner({ projects, onOpen }) {
 }
 
 function ActionPlanBanner({ projects, onSave }) {
-  const [expandedId, setExpandedId] = useState(null);
   const [localPlans, setLocalPlans] = useState({});
 
   const withIssues = projects.filter((p) => p.column !== "archive" && p.column !== "not_awarded");
@@ -456,67 +455,52 @@ function ActionPlanBanner({ projects, onSave }) {
 
   return (
     <div style={{ background: COLORS.white, border: `1.5px solid ${COLORS.amber}`, borderRadius: 6, padding: "12px 16px" }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.amber, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.amber, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         📋 ACTION PLAN
       </div>
       {withIssues.map((p) => {
-        const isExpanded = expandedId === p.id;
         const plan = getPlan(p);
         return (
-          <div key={p.id} style={{ marginBottom: 8, borderTop: `1px solid ${COLORS.line}`, paddingTop: 8 }}>
-            <div
-              onClick={() => setExpandedId(isExpanded ? null : p.id)}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", marginBottom: isExpanded ? 10 : 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600 }}>
-                <strong>{p.po}</strong> — {p.name}
-                {plan.length > 0 && <span style={{ marginLeft: 8, fontSize: 11, color: COLORS.amber, fontWeight: 400 }}>{plan.length} action{plan.length > 1 ? "s" : ""}</span>}
-              </div>
-              <span style={{ fontSize: 12, color: COLORS.textMute }}>{isExpanded ? "▲ collapse" : "▼ edit"}</span>
+          <div key={p.id} style={{ marginBottom: 16, borderTop: `1px solid ${COLORS.line}`, paddingTop: 10 }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: COLORS.paper2 }}>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "28%" }}>Responsable</th>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "20%" }}>Target date</th>
+                    <th style={{ borderBottom: `1px solid ${COLORS.line}`, width: "7%" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plan.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ padding: "8px", color: COLORS.textMute, fontStyle: "italic", fontSize: 12 }}>No actions yet — add one below.</td>
+                    </tr>
+                  )}
+                  {plan.map((r, i) => (
+                    <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={r.action} onChange={(e) => updateRow(p, i, "action", e.target.value)} placeholder="Describe action…" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                      </td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={r.responsable} onChange={(e) => updateRow(p, i, "responsable", e.target.value)} placeholder="Name" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                      </td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input type="date" value={r.targetDate} onChange={(e) => updateRow(p, i, "targetDate", e.target.value)} style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                      </td>
+                      <td style={{ padding: "4px 6px", textAlign: "center" }}>
+                        <button onClick={() => removeRow(p, i)} style={{ background: "none", border: "none", color: COLORS.rust, cursor: "pointer", fontSize: 15 }}>×</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {isExpanded && (
-              <div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                    <thead>
-                      <tr style={{ background: COLORS.paper2 }}>
-                        <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
-                        <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "28%" }}>Responsable</th>
-                        <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "20%" }}>Target date</th>
-                        <th style={{ borderBottom: `1px solid ${COLORS.line}`, width: "7%" }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plan.length === 0 && (
-                        <tr>
-                          <td colSpan={4} style={{ padding: "8px", color: COLORS.textMute, fontStyle: "italic", fontSize: 12 }}>No actions yet — add one below.</td>
-                        </tr>
-                      )}
-                      {plan.map((r, i) => (
-                        <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
-                          <td style={{ padding: "4px 6px" }}>
-                            <input value={r.action} onChange={(e) => updateRow(p, i, "action", e.target.value)} placeholder="Describe action…" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                          </td>
-                          <td style={{ padding: "4px 6px" }}>
-                            <input value={r.responsable} onChange={(e) => updateRow(p, i, "responsable", e.target.value)} placeholder="Name" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                          </td>
-                          <td style={{ padding: "4px 6px" }}>
-                            <input type="date" value={r.targetDate} onChange={(e) => updateRow(p, i, "targetDate", e.target.value)} style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                          </td>
-                          <td style={{ padding: "4px 6px", textAlign: "center" }}>
-                            <button onClick={() => removeRow(p, i)} style={{ background: "none", border: "none", color: COLORS.rust, cursor: "pointer", fontSize: 15 }}>×</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                  <button onClick={() => addRow(p)} style={{ ...btnGhost, fontSize: 12 }}>+ Add row</button>
-                  <button onClick={() => savePlan(p)} style={{ ...btnGreen, fontSize: 12, padding: "6px 14px" }}>Save</button>
-                </div>
-              </div>
-            )}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              <button onClick={() => addRow(p)} style={{ ...btnGhost, fontSize: 12 }}>+ Add row</button>
+              <button onClick={() => savePlan(p)} style={{ ...btnGreen, fontSize: 12, padding: "6px 14px" }}>Save</button>
+            </div>
           </div>
         );
       })}
