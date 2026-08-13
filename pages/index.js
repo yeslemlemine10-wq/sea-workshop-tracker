@@ -426,84 +426,59 @@ function BlockingIssuesBanner({ projects, onOpen }) {
 function ActionPlanBanner({ projects, onSave }) {
   const [localPlans, setLocalPlans] = useState({});
 
-  const withIssues = projects.filter((p) => p.column !== "archive" && p.column !== "not_awarded");
-  if (withIssues.length === 0) return null;
+  const [plan, setPlan] = useState([]);
 
-  const getPlan = (p) => localPlans[p.id] !== undefined ? localPlans[p.id] : (p.actionPlan || []);
+  const addRow = () => setPlan((prev) => [...prev, { id: uid(), action: "", responsable: "", targetDate: "" }]);
+  const updateRow = (idx, field, val) => setPlan((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
+  const removeRow = (idx) => setPlan((prev) => prev.filter((_, i) => i !== idx));
+  const savePlan = () => onSave(plan);
 
-  const updatePlan = (p, plan) => setLocalPlans((prev) => ({ ...prev, [p.id]: plan }));
-
-  const savePlan = (p) => {
-    const plan = getPlan(p);
-    onSave({ ...p, actionPlan: plan });
-  };
-
-  const addRow = (p) => {
-    const plan = [...getPlan(p), { id: uid(), action: "", responsable: "", targetDate: "" }];
-    updatePlan(p, plan);
-  };
-
-  const updateRow = (p, idx, field, val) => {
-    const plan = getPlan(p).map((r, i) => (i === idx ? { ...r, [field]: val } : r));
-    updatePlan(p, plan);
-  };
-
-  const removeRow = (p, idx) => {
-    const plan = getPlan(p).filter((_, i) => i !== idx);
-    updatePlan(p, plan);
-  };
+  if (projects.filter((p) => p.column !== "archive" && p.column !== "not_awarded").length === 0) return null;
 
   return (
     <div style={{ background: COLORS.white, border: `1.5px solid ${COLORS.amber}`, borderRadius: 6, padding: "12px 16px" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.amber, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         📋 ACTION PLAN
       </div>
-      {withIssues.map((p) => {
-        const plan = getPlan(p);
-        return (
-          <div key={p.id} style={{ marginBottom: 16, borderTop: `1px solid ${COLORS.line}`, paddingTop: 10 }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead>
-                  <tr style={{ background: COLORS.paper2 }}>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "28%" }}>Responsable</th>
-                    <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "20%" }}>Target date</th>
-                    <th style={{ borderBottom: `1px solid ${COLORS.line}`, width: "7%" }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plan.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: "8px", color: COLORS.textMute, fontStyle: "italic", fontSize: 12 }}>No actions yet — add one below.</td>
-                    </tr>
-                  )}
-                  {plan.map((r, i) => (
-                    <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
-                      <td style={{ padding: "4px 6px" }}>
-                        <input value={r.action} onChange={(e) => updateRow(p, i, "action", e.target.value)} placeholder="Describe action…" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                      </td>
-                      <td style={{ padding: "4px 6px" }}>
-                        <input value={r.responsable} onChange={(e) => updateRow(p, i, "responsable", e.target.value)} placeholder="Name" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                      </td>
-                      <td style={{ padding: "4px 6px" }}>
-                        <input type="date" value={r.targetDate} onChange={(e) => updateRow(p, i, "targetDate", e.target.value)} style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
-                      </td>
-                      <td style={{ padding: "4px 6px", textAlign: "center" }}>
-                        <button onClick={() => removeRow(p, i)} style={{ background: "none", border: "none", color: COLORS.rust, cursor: "pointer", fontSize: 15 }}>×</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-              <button onClick={() => addRow(p)} style={{ ...btnGhost, fontSize: 12 }}>+ Add row</button>
-              <button onClick={() => savePlan(p)} style={{ ...btnGreen, fontSize: 12, padding: "6px 14px" }}>Save</button>
-            </div>
-          </div>
-        );
-      })}
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: COLORS.paper2 }}>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "28%" }}>Responsable</th>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.text, borderBottom: `1px solid ${COLORS.line}`, width: "20%" }}>Target date</th>
+              <th style={{ borderBottom: `1px solid ${COLORS.line}`, width: "7%" }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plan.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: "8px", color: COLORS.textMute, fontStyle: "italic", fontSize: 12 }}>No actions yet — add one below.</td>
+              </tr>
+            )}
+            {plan.map((r, i) => (
+              <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+                <td style={{ padding: "4px 6px" }}>
+                  <input value={r.action} onChange={(e) => updateRow(i, "action", e.target.value)} placeholder="Describe action…" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                </td>
+                <td style={{ padding: "4px 6px" }}>
+                  <input value={r.responsable} onChange={(e) => updateRow(i, "responsable", e.target.value)} placeholder="Name" style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                </td>
+                <td style={{ padding: "4px 6px" }}>
+                  <input type="date" value={r.targetDate} onChange={(e) => updateRow(i, "targetDate", e.target.value)} style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }} />
+                </td>
+                <td style={{ padding: "4px 6px", textAlign: "center" }}>
+                  <button onClick={() => removeRow(i)} style={{ background: "none", border: "none", color: COLORS.rust, cursor: "pointer", fontSize: 15 }}>×</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <button onClick={addRow} style={{ ...btnGhost, fontSize: 12 }}>+ Add row</button>
+        <button onClick={savePlan} style={{ ...btnGreen, fontSize: 12, padding: "6px 14px" }}>Save</button>
+      </div>
     </div>
   );
 }
