@@ -79,6 +79,7 @@ function fromRow(r) {
     notAwardedReason: r.not_awarded_reason || "",
     onHold: !!r.on_hold,
     onHoldReason: r.on_hold_reason || "",
+    actionPlan: r.action_plan || [],
   };
 }
 function toRow(p) {
@@ -94,6 +95,7 @@ function toRow(p) {
     not_awarded_reason: p.notAwardedReason,
     on_hold: !!p.onHold,
     on_hold_reason: p.onHoldReason,
+    action_plan: p.actionPlan,
     updated_at: new Date().toISOString(), updated_by: p.updatedBy,
   };
 }
@@ -480,6 +482,64 @@ function AttachmentsEditor({ attachments, onChange }) {
   );
 }
 
+function ActionPlanEditor({ items, onChange }) {
+  const addRow = () => onChange([...(items || []), { id: uid(), action: "", responsable: "", targetDate: "" }]);
+  const update = (idx, field, val) => onChange(items.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
+  const remove = (idx) => onChange(items.filter((_, i) => i !== idx));
+
+  return (
+    <div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 420 }}>
+          <thead>
+            <tr style={{ background: COLORS.paper2 }}>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "30%" }}>Responsable</th>
+              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "20%" }}>Target date</th>
+              <th style={{ borderBottom: `1px solid ${COLORS.line}`, width: "5%" }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(items || []).length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: "10px 8px", color: COLORS.textMute, fontStyle: "italic", fontSize: 12 }}>No action plan yet.</td>
+              </tr>
+            )}
+            {(items || []).map((r, i) => (
+              <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+                <td style={{ padding: "4px 6px" }}>
+                  <input
+                    value={r.action} onChange={(e) => update(i, "action", e.target.value)}
+                    placeholder="Describe action…"
+                    style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
+                  />
+                </td>
+                <td style={{ padding: "4px 6px" }}>
+                  <input
+                    value={r.responsable} onChange={(e) => update(i, "responsable", e.target.value)}
+                    placeholder="Name"
+                    style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
+                  />
+                </td>
+                <td style={{ padding: "4px 6px" }}>
+                  <input
+                    type="date" value={r.targetDate} onChange={(e) => update(i, "targetDate", e.target.value)}
+                    style={{ ...inputStyle, padding: "5px 8px", fontSize: 12 }}
+                  />
+                </td>
+                <td style={{ padding: "4px 6px", textAlign: "center" }}>
+                  <button onClick={() => remove(i)} style={{ background: "none", border: "none", color: COLORS.rust, cursor: "pointer", fontSize: 15 }}>×</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button onClick={addRow} style={{ ...btnGhost, fontSize: 12, marginTop: 8 }}>+ Add row</button>
+    </div>
+  );
+}
+
 function ProjectModal({ initial, defaultColumn, onClose, onSave, currentUser }) {
   const isEdit = !!initial;
   const [po, setPo] = useState(initial?.po || "");
@@ -787,6 +847,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
   const [invoiceCommunicated, setInvoiceCommunicated] = useState(!!p.invoiceCommunicated);
   const [closed, setClosed] = useState(!!p.closed);
   const [blockingIssues, setBlockingIssues] = useState(p.blockingIssues || []);
+  const [actionPlan, setActionPlan] = useState(p.actionPlan || []);
   
   if (editing) {
     return <ProjectModal initial={p} onClose={() => setEditing(false)} onSave={(updated) => { onSave(updated); setEditing(false); }} currentUser={currentUser} />;
@@ -882,10 +943,17 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           )}
 
          {p.column !== "archive" && p.column !== "not_awarded" && (
-            <div style={{ marginBottom: 16 }}>
-              <span style={labelSmall}>Blocking issues</span>
-              <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Visible to everyone on the board until resolved.</p>
-              <BlockingIssuesEditor issues={blockingIssues} onChange={(v) => { setBlockingIssues(v); onSave({ ...p, blockingIssues: v }); }} />
+            <div style={{ marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 18, alignItems: "start" }}>
+              <div>
+                <span style={labelSmall}>Blocking issues</span>
+                <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Visible to everyone on the board until resolved.</p>
+                <BlockingIssuesEditor issues={blockingIssues} onChange={(v) => { setBlockingIssues(v); onSave({ ...p, blockingIssues: v }); }} />
+              </div>
+              <div>
+                <span style={labelSmall}>Action plan</span>
+                <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Actions to resolve blocking issues.</p>
+                <ActionPlanEditor items={actionPlan} onChange={(v) => { setActionPlan(v); onSave({ ...p, actionPlan: v }); }} />
+              </div>
             </div>
           )}
 
