@@ -892,7 +892,7 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
   const [invoiceCommunicated, setInvoiceCommunicated] = useState(!!p.invoiceCommunicated);
   const [closed, setClosed] = useState(!!p.closed);
   const [blockingIssues, setBlockingIssues] = useState(p.blockingIssues || []);
-  const [actionPlan, setActionPlan] = useState(p.actionPlan || []);
+  
   
   if (editing) {
     return <ProjectModal initial={p} onClose={() => setEditing(false)} onSave={(updated) => { onSave(updated); setEditing(false); }} currentUser={currentUser} />;
@@ -988,17 +988,10 @@ function ProjectDrawer({ p, onClose, onSave, onDelete, onRequestAdvance, onArchi
           )}
 
          {p.column !== "archive" && p.column !== "not_awarded" && (
-            <div style={{ marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 18, alignItems: "start" }}>
-              <div>
-                <span style={labelSmall}>Blocking issues</span>
-                <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Visible to everyone on the board until resolved.</p>
-                <BlockingIssuesEditor issues={blockingIssues} onChange={(v) => { setBlockingIssues(v); onSave({ ...p, blockingIssues: v }); }} />
-              </div>
-              <div>
-                <span style={labelSmall}>Action plan</span>
-                <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Actions to resolve blocking issues.</p>
-                <ActionPlanEditor items={actionPlan} onChange={(v) => { setActionPlan(v); onSave({ ...p, actionPlan: v }); }} />
-              </div>
+            <div style={{ marginBottom: 16 }}>
+              <span style={labelSmall}>Blocking issues</span>
+              <p style={{ fontSize: 11.5, color: COLORS.textMute, margin: "4px 0 8px" }}>Visible to everyone on the board until resolved.</p>
+              <BlockingIssuesEditor issues={blockingIssues} onChange={(v) => { setBlockingIssues(v); onSave({ ...p, blockingIssues: v }); }} />
             </div>
           )}
 
