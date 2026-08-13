@@ -407,7 +407,7 @@ function BlockingIssuesBanner({ projects, onOpen }) {
   const withIssues = projects.filter((p) => (p.blockingIssues || []).some((b) => !b.resolved));
   if (withIssues.length === 0) return null;
   return (
-    <div style={{ background: COLORS.rustLight, border: `1.5px solid ${COLORS.rust}`, borderRadius: 6, padding: "12px 16px", marginBottom: 18 }}>
+    <div style={{ background: COLORS.rustLight, border: `1.5px solid ${COLORS.rust}`, borderRadius: 6, padding: "12px 16px" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.rust, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
         ⚠ BLOCKING ISSUES — {withIssues.length} project{withIssues.length > 1 ? "s" : ""} need action
       </div>
@@ -419,6 +419,51 @@ function BlockingIssuesBanner({ projects, onOpen }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ActionPlanBanner({ projects }) {
+  const withPlan = projects.filter((p) =>
+    (p.actionPlan || []).length > 0 && (p.blockingIssues || []).some((b) => !b.resolved)
+  );
+  if (withPlan.length === 0) return null;
+
+  return (
+    <div style={{ background: COLORS.white, border: `1.5px solid ${COLORS.amber}`, borderRadius: 6, padding: "12px 16px", marginBottom: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.amber, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+        📋 ACTION PLAN — {withPlan.length} project{withPlan.length > 1 ? "s" : ""}
+      </div>
+      {withPlan.map((p) => (
+        <div key={p.id} style={{ marginBottom: 12, paddingTop: 8, borderTop: `1px solid ${COLORS.line}` }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+            <strong>{p.po}</strong> — {p.name}
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: COLORS.paper2 }}>
+                  <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "45%" }}>Action</th>
+                  <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "30%" }}>Responsable</th>
+                  <th style={{ textAlign: "left", padding: "5px 8px", fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: COLORS.textMute, borderBottom: `1px solid ${COLORS.line}`, width: "25%" }}>Target date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(p.actionPlan || []).map((r, i) => (
+                  <tr key={r.id || i} style={{ borderBottom: `1px solid ${COLORS.line}` }}>
+                    <td style={{ padding: "5px 8px", color: COLORS.text }}>{r.action || "—"}</td>
+                    <td style={{ padding: "5px 8px", color: COLORS.text }}>{r.responsable || "—"}</td>
+                    <td style={{ padding: "5px 8px", color: r.targetDate && new Date(r.targetDate) < new Date() ? COLORS.rust : COLORS.text, fontWeight: r.targetDate && new Date(r.targetDate) < new Date() ? 600 : 400 }}>
+                      {r.targetDate ? fmtDate(r.targetDate) : "—"}
+                      {r.targetDate && new Date(r.targetDate) < new Date() && <span style={{ marginLeft: 4, fontSize: 10 }}>⚠ overdue</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1289,7 +1334,10 @@ const requestAdvance = (p) => {
 
       <main style={{ flex: 1, padding: "20px 24px 40px" }}>
         <ManpowerWidget entries={manpower} onOpenEditor={() => setShowManpowerEditor(true)} />
-        <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 0 }}>
+          <BlockingIssuesBanner projects={projects} onOpen={setOpenProject} />
+          <ActionPlanBanner projects={projects} />
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 18, alignItems: "start" }}>
 
