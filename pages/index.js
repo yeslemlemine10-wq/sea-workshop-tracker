@@ -424,9 +424,13 @@ function BlockingIssuesBanner({ projects, onOpen }) {
 }
 
 function ActionPlanBanner({ projects, onSave }) {
-  const [localPlans, setLocalPlans] = useState({});
-
   const [plan, setPlan] = useState([]);
+
+  useEffect(() => {
+    supabase.from("action_plan").select("*").order("created_at").then(({ data }) => {
+      if (data) setPlan(data.map((r) => ({ id: r.id, action: r.action || "", responsable: r.responsable || "", targetDate: r.target_date || "" })));
+    });
+  }, []);
 
   const addRow = () => setPlan((prev) => [...prev, { id: uid(), action: "", responsable: "", targetDate: "" }]);
   const updateRow = (idx, field, val) => setPlan((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
