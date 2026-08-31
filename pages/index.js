@@ -431,7 +431,18 @@ function ActionPlanBanner({ projects, onSave }) {
   const addRow = () => setPlan((prev) => [...prev, { id: uid(), action: "", responsable: "", targetDate: "" }]);
   const updateRow = (idx, field, val) => setPlan((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
   const removeRow = (idx) => setPlan((prev) => prev.filter((_, i) => i !== idx));
-  const savePlan = () => onSave(plan);
+  const savePlan = async () => {
+    await supabase.from("action_plan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const inserts = plan
+      .filter((r) => r.action.trim() || r.responsable.trim() || r.targetDate)
+      .map((r) => ({ action: r.action, responsable: r.responsable, target_date: r.targetDate || null }));
+    if (inserts.length) {
+      const { data } = await supabase.from("action_plan").insert(inserts).select();
+      if (data) setPlan(data.map((r) => ({ id: r.id, action: r.action || "", responsable: r.responsable || "", targetDate: r.target_date || "" })));
+    } else {
+      setPlan([]);
+    }
+  };
 
   if (projects.filter((p) => p.column !== "archive" && p.column !== "not_awarded").length === 0) return null;
 
